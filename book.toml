@@ -1,12 +1,9 @@
 [book]
 title = "Pierre MCP Server Tutorial"
 authors = ["Pierre Fitness Intelligence Team"]
-description = "Comprehensive tutorial for building production-grade MCP servers in Rust - covering architecture, authentication, multi-tenancy, and sports science domains"
+description = "Comprehensive tutorial for building production-grade MCP servers in Rust"
 language = "en"
-multilingual = false
-
-[rust]
-edition = "2021"
+src = "src"
 
 [build]
 build-dir = "book"
@@ -18,10 +15,6 @@ preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/Async-IO/pierre-tutorial"
 edit-url-template = "https://github.com/Async-IO/pierre-tutorial/edit/main/{path}"
 site-url = "/pierre-tutorial/"
-cname = ""
-additional-css = []
-additional-js = []
-no-section-label = false
 
 [output.html.print]
 enable = true
@@ -30,21 +23,12 @@ enable = true
 enable = true
 level = 1
 
-[output.html.playground]
-editable = true
-copyable = true
-copy-js = true
-line-numbers = true
-runnable = false
-
 [output.html.search]
 enable = true
 limit-results = 30
 teaser-word-count = 30
-use-hierarchical-urls = true
 boost-title = 2
 boost-hierarchy = 1
 boost-paragraph = 1
 expand = true
 heading-split-level = 3
-copy-js = true
