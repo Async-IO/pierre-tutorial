@@ -1,20 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 14: Type Generation & Tools-to-Types System
 
+---
+
 This chapter explores Pierre's automated type generation system that converts Rust tool schemas to TypeScript interfaces, ensuring type safety between the server and SDK. You'll learn about schema-driven development, synthetic data generation for testing, and the complete tools-to-types workflow.
-
-## What You'll Learn
-
-- Automated type generation from server schemas
-- JSON Schema to TypeScript conversion
-- Schema-driven development workflow
-- Synthetic data generation for testing
-- Tools-to-types script implementation
-- Type safety guarantees across language boundaries
-- Deterministic testing patterns
-- Builder pattern for test data
 
 ## Type Generation Overview
 
@@ -194,12 +182,12 @@ function jsonSchemaToTypeScript(property, propertyName, required = false) {
 ```
 
 **Type mapping**:
-- `string` → `string` (with enum support for union types)
-- `number`/`integer` → `number`
-- `boolean` → `boolean`
-- `array` → `T[]` (with item type inference)
-- `object` → inline interface or `Record<string, T>`
-- Union types: `["string", "null"]` → `string | null`
+- `string` -> `string` (with enum support for union types)
+- `number`/`integer` -> `number`
+- `boolean` -> `boolean`
+- `array` -> `T[]` (with item type inference)
+- `object` -> inline interface or `Record<string, T>`
+- Union types: `["string", "null"]` -> `string | null`
 
 ## Typescript Idioms: Union Types and Literal Types
 
@@ -267,7 +255,7 @@ export interface GetActivitiesParams {
 }
 ```
 
-**Naming convention**: `tool_name` → `ToolNameParams` (PascalCase conversion)
+**Naming convention**: `tool_name` -> `ToolNameParams` (PascalCase conversion)
 
 ## Type-Safe Tool Mapping
 
@@ -392,25 +380,25 @@ npm run generate-types
 
 **Output example**:
 ```
-🔧 Pierre SDK Type Generator
+Pierre SDK Type Generator
 ==============================
 
-📡 Fetching tool schemas from http://localhost:8081/mcp...
-✅ Fetched 47 tool schemas
+Fetching tool schemas from http://localhost:8081/mcp...
+Fetched 47 tool schemas
 
-🔨 Generating TypeScript definitions...
-💾 Writing to sdk/src/types.ts...
-✅ Successfully generated types for 47 tools!
+Generating TypeScript definitions...
+Writing to sdk/src/types.ts...
+Successfully generated types for 47 tools!
 
-📋 Generated interfaces:
+Generated interfaces:
    - ConnectToPierreParams
    - ConnectProviderParams
    - GetActivitiesParams
    ... (42 more)
 
-✨ Type generation complete!
+Type generation complete!
 
-💡 Import types in your code:
+Import types in your code:
    import { GetActivitiesParams, Activity } from './types';
 ```
 
@@ -561,7 +549,7 @@ fn beginner_runner_improving(&mut self) -> Vec<Activity> {
 
 **Pattern characteristics**:
 - **Realistic progression**: 35% improvement over 6 weeks (physiologically plausible)
-- **Gradual adaptation**: Increasing volume (20→25→30 min) and intensity (6.5→6.0→5.5 min/km)
+- **Gradual adaptation**: Increasing volume (20->25->30 min) and intensity (6.5->6.0->5.5 min/km)
 - **Heart rate efficiency**: Lower HR at faster paces indicates improved fitness
 
 ## Synthetic Provider for Testing
@@ -710,34 +698,34 @@ The complete workflow ensures server and client stay synchronized:
 └────────────────────────────────────────────────────────────┘
 
 1. Define tool in Rust (src/mcp/schema.rs)
-   ↓
+   |
    pub fn create_get_activities_tool() -> ToolSchema { ... }
 
 2. Add to tool registry (src/mcp/schema.rs)
-   ↓
+   |
    pub fn get_tools() -> Vec<ToolSchema> {
        vec![create_get_activities_tool(), ...]
    }
 
 3. Start Pierre server
-   ↓
+   |
    cargo run --bin pierre-mcp-server
 
 4. Generate TypeScript types
-   ↓
+   |
    cd sdk && npm run generate-types
 
 5. TypeScript SDK uses generated types
-   ↓
+   |
    import { GetActivitiesParams } from './types';
    const params: GetActivitiesParams = { provider: "strava", limit: 10 };
 
 6. Compile-time type checking
-   ↓
+   |
    // TypeScript compiler validates:
-   // ✅ provider is required
-   // ✅ limit is optional number
-   // ❌ invalid_field causes compile error
+   // - provider is required
+   // - limit is optional number
+   // - invalid_field causes compile error
 ```
 
 **Key benefit**: Changes to Rust tool schemas automatically propagate to TypeScript SDK after regeneration.

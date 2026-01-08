@@ -1,18 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 27: API Keys, Rate Limiting & Real-Time Dashboard
 
+---
+
 This appendix covers Pierre's B2B API key system, unified rate limiting engine, and real-time usage dashboard/WebSocket updates. You'll learn how API keys are modeled, how quotas and bursts are enforced, and how the dashboard surfaces this information to end users.
-
-## What You'll Learn
-
-- API key tiers, lifecycle, and storage (`src/api_keys.rs`)
-- Unified rate limiting for API keys and JWTs (`src/rate_limiting.rs`)
-- Usage tracking and monthly quotas
-- Real-time usage updates over WebSocket (`src/websocket.rs`)
-- Dashboard overview and analytics models (`src/dashboard_routes.rs`)
-- How these pieces fit together with MCP tools
 
 ## API Key Model & Tiers
 

@@ -3,20 +3,7 @@
 
 # Chapter 09: JSON-RPC 2.0 Foundation
 
-This chapter explores the JSON-RPC 2.0 protocol that forms the foundation of the Model Context Protocol (MCP) in the Pierre Fitness Platform. You'll learn about request/response structures, error codes, notifications, and how Pierre extends JSON-RPC for authentication and multi-tenancy.
-
-## What You'll Learn
-
-- JSON-RPC 2.0 specification and structure
-- Request, response, and error objects
-- Standard error codes (-32700 to -32600)
-- Request correlation with ID fields
-- Notifications (fire-and-forget messages)
-- Pierre's JSON-RPC extensions (auth, headers, metadata)
-- Custom Debug implementation for security
-- Protocol versioning with jsonrpc field
-- Unified JSON-RPC for MCP and A2A protocols
-- Error handling patterns and best practices
+---
 
 ## JSON-RPC 2.0 Overview
 

@@ -3,19 +3,9 @@
 
 # Chapter 17: Provider Data Models & Rate Limiting
 
+---
+
 This chapter explores how Pierre abstracts fitness provider APIs through unified interfaces and handles rate limiting across multiple providers. You'll learn about trait-based provider abstraction, provider-agnostic data models, retry logic, and tenant-aware provider wrappers.
-
-## What You'll Learn
-
-- Trait-based provider abstraction
-- Provider-agnostic data models
-- Async trait implementation
-- Rate limit handling with exponential backoff
-- Provider error types with structured context
-- Type conversion utilities for API data
-- Tenant-aware provider wrappers
-- Cursor-based vs offset-based pagination
-- Optional trait methods with default implementations
 
 ## Provider Abstraction Architecture
 

@@ -3,19 +3,9 @@
 
 # Chapter 23: Testing Framework - Comprehensive Testing Patterns
 
+---
+
 This chapter covers Pierre's testing infrastructure including database testing, integration patterns, synthetic data generation, async testing, error testing, and test organization best practices.
-
-## What You'll Learn
-
-- Database testing patterns (in-memory databases, isolation, fixtures)
-- Integration test patterns for MCP protocol
-- Async test patterns with tokio::test
-- Synthetic data generation with seeded RNG
-- Test helper utilities and common fixtures
-- Error testing and edge case validation
-- Mock/stub patterns for external APIs
-- Test setup and teardown patterns
-- Test organization (unit, integration, E2E)
 
 ## Database Testing Patterns
 

@@ -3,20 +3,9 @@
 
 # Chapter 17.5: Pluggable Provider Architecture
 
+---
+
 This chapter explores pierre's pluggable provider architecture that enables runtime registration of 1 to x fitness providers simultaneously. You'll learn about provider factories, dynamic discovery, environment-based configuration, and how to add new providers without modifying existing code.
-
-## What You'll Learn
-
-- Provider registry and factory pattern
-- Runtime provider discovery (1 to x providers)
-- Environment-based provider configuration
-- Shared request/response trait contracts
-- **Service Provider Interface (SPI)** for external providers
-- **Feature flags** for compile-time provider selection
-- **Bitflags-based capabilities** detection
-- Adding custom providers without code changes
-- Synthetic provider for development/testing
-- Multi-provider connection management
 
 ## Pluggable Architecture Overview
 

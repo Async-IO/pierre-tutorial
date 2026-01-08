@@ -3,23 +3,9 @@
 
 # Chapter 32: SDK Development Tutorial
 
+---
+
 This chapter provides a hands-on guide to developing and extending the Pierre TypeScript SDK. You'll learn how to set up your development environment, run tests, generate types, and modify the bridge client.
-
-## What You'll Learn
-
-- Setting up the SDK development environment
-- Building and running the SDK
-- Running unit, integration, and E2E tests
-- Understanding the type generation pipeline
-- Modifying the bridge client
-- Using MCP Inspector for debugging
-- Best practices for SDK development
-
-## Prerequisites
-
-- Node.js 24.0+ (required by `engines` field in package.json)
-- Running Pierre server (see Chapter 25 for deployment)
-- Bun runtime (optional, for faster execution)
 
 ## Development Environment Setup
 

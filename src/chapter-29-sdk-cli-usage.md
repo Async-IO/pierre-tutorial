@@ -3,15 +3,9 @@
 
 # Chapter 29: TypeScript SDK & CLI Usage
 
+---
+
 This appendix explains how to use the Pierre TypeScript SDK and command-line interface to connect MCP hosts to the Pierre server. You'll learn about the main SDK entry points, CLI flags, and environment-driven configuration.
-
-## What You'll Learn
-
-- SDK entrypoint and exports (`sdk/src/index.ts`)
-- Bridge client configuration (`sdk/src/bridge.ts`, see Chapter 13)
-- CLI wrapper and argument parsing (`sdk/src/cli.ts`)
-- Environment variables for headless/CI usage
-- Graceful shutdown and process lifecycle
 
 ## SDK Entrypoint
 

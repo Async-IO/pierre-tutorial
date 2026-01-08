@@ -3,23 +3,9 @@
 
 # Chapter 33: Frontend Development Tutorial
 
+---
+
 This chapter provides a hands-on guide to developing and extending the Pierre React frontend dashboard. You'll learn how to set up your development environment, understand the component architecture, run tests, and modify the application.
-
-## What You'll Learn
-
-- Setting up the frontend development environment
-- Understanding the component architecture
-- Working with the service layer and React Query
-- Adding new features and components
-- Running unit, integration, and E2E tests
-- Pierre design system guidelines
-- Best practices for frontend development
-
-## Prerequisites
-
-- Node.js 18+ (Bun runtime also supported)
-- Running Pierre server on localhost:8081
-- Basic familiarity with React and TypeScript
 
 ## Development Environment Setup
 

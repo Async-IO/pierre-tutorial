@@ -1,20 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 16: OAuth 2.0 Client for Fitness Providers
 
+---
+
 This chapter explores how Pierre acts as an OAuth 2.0 client to connect to fitness providers like Strava and Fitbit. You'll learn about the OAuth client implementation, PKCE generation, token management, and provider-specific integrations.
-
-## What You'll Learn
-
-- OAuth 2.0 client implementation for fitness providers
-- PKCE generation with SHA-256
-- Authorization URL construction
-- Token exchange and refresh
-- Provider-specific OAuth flows (Strava, Fitbit)
-- Token expiration and renewal
-- Tenant-aware OAuth clients
-- Rate limiting and usage tracking
 
 ## OAuth Client Architecture
 

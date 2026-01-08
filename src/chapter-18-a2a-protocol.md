@@ -3,19 +3,9 @@
 
 # Chapter 18: A2A Protocol - Agent-to-Agent Communication
 
+---
+
 This chapter explores how Pierre implements the Agent-to-Agent (A2A) protocol for secure inter-agent communication. You'll learn about the A2A protocol architecture, Ed25519 signatures, agent capability discovery, and JSON-RPC-based messaging between AI agents.
-
-## What You'll Learn
-
-- A2A protocol architecture
-- JSON-RPC 2.0 foundation for A2A
-- Agent capability discovery with agent cards
-- Ed25519 public key authentication
-- A2A client registration and authentication
-- Rate limiting for A2A clients
-- Long-running tasks and notifications
-- Message streaming and structured data
-- A2A authentication with API keys
 
 ## A2A Protocol Overview
 

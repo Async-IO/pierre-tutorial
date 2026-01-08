@@ -3,16 +3,9 @@
 
 # Chapter 24: Design System - Frontend Dashboard, Templates & UX
 
+---
+
 This chapter covers Pierre's design system including the React admin dashboard, OAuth templates, brand identity, and user experience patterns for fitness data visualization.
-
-## What You'll Learn
-
-- Admin dashboard architecture (React/TypeScript)
-- Component organization and lazy loading
-- State management (React Query + WebSocket)
-- Brand identity and color system
-- OAuth success/error templates
-- Real-time data visualization
 
 ## Frontend Admin Dashboard
 

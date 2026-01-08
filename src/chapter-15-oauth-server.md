@@ -1,21 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 15: OAuth 2.0 Server Implementation
 
+---
+
 This chapter explores how Pierre implements a full OAuth 2.0 authorization server for secure MCP client authentication. You'll learn about RFC 7591 dynamic client registration, PKCE (RFC 7636), authorization code flow, and JWT-based access tokens.
-
-## What You'll Learn
-
-- OAuth 2.0 authorization server implementation
-- RFC 7591 dynamic client registration
-- RFC 7636 PKCE (Proof Key for Code Exchange)
-- OAuth discovery endpoint (RFC 8414)
-- Authorization code flow with redirect
-- JWT as OAuth access tokens
-- Argon2 for client secret hashing
-- Constant-time credential validation
-- Multi-tenant OAuth isolation
 
 ## OAuth 2.0 Server Architecture
 
@@ -468,7 +455,7 @@ The token endpoint exchanges authorization codes for JWT access tokens:
 /// Returns an error if client validation fails or token generation fails
 pub async fn token(&self, request: TokenRequest) -> Result<TokenResponse, OAuth2Error> {
     // ALWAYS validate client credentials for ALL grant types (RFC 6749 Section 6)
-    // RFC 6749 §6 states: "If the client type is confidential or the client was issued
+    // RFC 6749 Section 6 states: "If the client type is confidential or the client was issued
     // client credentials, the client MUST authenticate with the authorization server"
     // MCP clients are confidential clients, so authentication is REQUIRED
     self.client_manager

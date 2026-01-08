@@ -3,16 +3,9 @@
 
 # Chapter 34: Database System Prompts
 
+---
+
 This chapter covers Pierre's database-backed prompt management system, which enables tenant-specific customization of AI chat suggestions, welcome messages, and system instructions.
-
-## What You'll Learn
-
-- Database schema for prompt storage
-- Pillar-based prompt categorization
-- Tenant isolation for prompts
-- Admin CRUD operations
-- Reset to defaults mechanism
-- Frontend admin UI integration
 
 ## Architecture Overview
 

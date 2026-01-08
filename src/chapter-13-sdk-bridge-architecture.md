@@ -1,19 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 13: SDK Bridge Architecture
 
+---
+
 This chapter explores how the TypeScript SDK bridges MCP hosts (like Claude Desktop) to the Pierre server, translating between stdio (MCP standard) and HTTP (Pierre's transport).
-
-## What You'll Learn
-
-- SDK bridge architecture pattern
-- stdio to HTTP translation
-- OAuth 2.0 client implementation
-- Token persistence with OS keychain
-- MCP host integration (Claude Desktop)
-- Bidirectional message routing
-- Automatic OAuth flow handling
 
 ## SDK Bridge Pattern
 
@@ -199,7 +188,7 @@ const OAuthCompletedNotificationSchema = z.object({
 
 ## Key Takeaways
 
-1. **Bridge pattern**: SDK translates stdio (MCP standard) ↔ HTTP (Pierre transport).
+1. **Bridge pattern**: SDK translates stdio (MCP standard) <-> HTTP (Pierre transport).
 
 2. **OAuth client**: Full OAuth 2.0 implementation with discovery, registration, and token exchange.
 

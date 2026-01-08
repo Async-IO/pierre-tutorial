@@ -3,19 +3,7 @@
 
 # Chapter 11: MCP Transport Layers
 
-This chapter explores how the Pierre Fitness Platform supports multiple transport mechanisms for MCP communication. You'll learn about stdio, HTTP, WebSocket, and SSE transports, and how the platform coordinates them for flexible client integration.
-
-## What You'll Learn
-
-- Transport layer abstraction for MCP protocol
-- Stdio transport for direct MCP communication
-- HTTP transport for web clients and APIs
-- Server-Sent Events (SSE) for notifications
-- WebSocket transport for bidirectional communication
-- Transport coordination and multiplexing
-- Notification broadcasting across transports
-- Transport-agnostic request processing
-- Error handling per transport type
+---
 
 ## Transport Abstraction Overview
 

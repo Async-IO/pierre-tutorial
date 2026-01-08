@@ -3,6 +3,8 @@
 
 # Chapter 31: Adding New MCP Tools - Complete Checklist
 
+---
+
 This appendix provides a comprehensive checklist for adding new MCP tools to Pierre. Following this checklist ensures tools are properly integrated across all layers and tested.
 
 ## Quick Reference Checklist

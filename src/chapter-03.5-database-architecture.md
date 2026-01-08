@@ -3,20 +3,9 @@
 
 # Database Architecture & Repository Pattern
 
+---
+
 This chapter explores Pierre's database architecture using the repository pattern with 13 focused repository traits following SOLID principles.
-
-## What You'll Learn
-
-- Repository pattern for database abstraction
-- 13 focused repository traits
-- Factory pattern for SQLite/PostgreSQL selection
-- Feature flags for database backends
-- AAD-based encryption for sensitive data
-- Transaction retry patterns with exponential backoff
-- Shared utilities (builders, mappers, validation)
-- Migration system with SQLx
-- Connection pooling strategies
-- Multi-tenant data isolation at database level
 
 ## Repository Pattern Architecture
 

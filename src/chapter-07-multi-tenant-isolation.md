@@ -3,20 +3,9 @@
 
 # Chapter 07: Multi-Tenant Database Isolation
 
+---
+
 This chapter explores how the Pierre Fitness Platform enforces strict tenant boundaries at the database layer, ensuring complete data isolation between different organizations using the same server instance. You'll learn about tenant context extraction, role-based access control, and query-level tenant filtering.
-
-## What You'll Learn
-
-- Multi-tenant architecture patterns for SaaS applications
-- `TenantContext` structure and lifecycle
-- Tenant roles: Owner, Admin, Billing, Member
-- JWT claims integration with tenant_id
-- Database query filtering with WHERE tenant_id
-- OAuth credential isolation per tenant
-- Resource access validation and RBAC
-- Tenant-aware logging and observability
-- Provider usage tracking per tenant
-- Security patterns for preventing cross-tenant data leaks
 
 ## Multi-Tenant Architecture Overview
 

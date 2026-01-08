@@ -3,6 +3,8 @@
 
 # Chapter 30: Performance Characteristics & Benchmarks
 
+---
+
 This appendix documents Pierre's performance characteristics, optimization strategies, and benchmarking guidelines for production deployments.
 
 ## Performance Overview

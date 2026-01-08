@@ -1,19 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 25: Production Deployment, Clippy & Performance
 
+---
+
 This chapter covers production deployment strategies, Clippy lint configuration for code quality, performance optimization techniques, and monitoring best practices for Pierre.
-
-## What You'll Learn
-
-- Production deployment architecture
-- Clippy lint configuration
-- Performance optimization patterns
-- Database connection pooling
-- Monitoring and observability
-- Security hardening
-- Scaling strategies
 
 ## Clippy Configuration
 

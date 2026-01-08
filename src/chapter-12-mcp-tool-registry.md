@@ -3,18 +3,7 @@
 
 # Chapter 12: MCP Tool Registry & Type-Safe Routing
 
-This final chapter of Part III explores how Pierre registers MCP tools, validates parameters with JSON Schema, and routes tool calls to handlers. You'll learn about the tool registry pattern, schema generation, and type-safe parameter validation.
-
-## What You'll Learn
-
-- Tool registry pattern for MCP servers
-- JSON Schema for parameter validation
-- Tool schema generation from types
-- Dynamic tool registration
-- Parameter extraction and validation
-- Tool routing to handler functions
-- Input schema requirements
-- Error handling for invalid parameters
+---
 
 ## Tool Registry Overview
 

@@ -1,20 +1,8 @@
-<!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
-<!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
-
 # Chapter 26: LLM Provider Architecture
 
+---
+
 This chapter explores Pierre's LLM (Large Language Model) provider abstraction layer, which enables pluggable AI model integration for chat functionality and recipe generation. The architecture mirrors the fitness provider SPI pattern, providing a consistent approach to external service integration.
-
-## What You'll Learn
-
-- Trait-based LLM provider abstraction
-- Runtime provider selection with `ChatProvider`
-- Implementing Gemini and Groq providers
-- Streaming responses with SSE
-- Tool/function calling support
-- Recipe generation integration ("Combat des Chefs")
-- Adding custom LLM providers
-- Error handling best practices
 
 ## Architecture Overview
 

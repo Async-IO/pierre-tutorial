@@ -3,22 +3,9 @@
 
 # Chapter 06: JWT Authentication with RS256
 
+---
+
 This chapter explores JWT (JSON Web Token) authentication using RS256 asymmetric signing in the Pierre Fitness Platform. You'll learn how the platform implements secure token generation, validation, and session management using RSA key pairs from the JWKS system covered in Chapter 5.
-
-## What You'll Learn
-
-- JWT structure and standard claims (iss, sub, aud, exp, iat, nbf, jti)
-- RS256 vs HS256: why asymmetric signing matters
-- Token generation with RSA private keys
-- Token validation with RSA public keys
-- Custom claims for permissions and multi-tenancy
-- Token refresh patterns and session management
-- Integration with JWKS for key rotation
-- Detailed error handling for token validation
-- Middleware-based authentication for MCP requests
-- Cookie-based authentication with httpOnly cookies (XSS protection)
-- CSRF protection using double-submit cookie pattern
-- Security layering for web applications vs API clients
 
 ## JWT Structure and Claims
 

@@ -3,20 +3,9 @@
 
 # Chapter 08: Middleware & Request Context
 
+---
+
 This chapter explores how the Pierre Fitness Platform uses Axum middleware to extract authentication, tenant context, rate limiting information, and tracing data from HTTP requests before routing to handlers. You'll learn about middleware composition, request ID generation, CORS configuration, and PII-safe logging.
-
-## What You'll Learn
-
-- Axum middleware architecture and Tower layers
-- Request ID generation for distributed tracing
-- Request context lifecycle and propagation
-- CORS configuration for web clients
-- Rate limiting headers (X-RateLimit-* family)
-- PII redaction and sensitive data protection
-- Middleware ordering and composition
-- Structured logging with tenant context
-- Request/response tracing spans
-- Security headers and best practices
 
 ## Middleware Stack Overview
 

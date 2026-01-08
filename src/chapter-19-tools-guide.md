@@ -3,18 +3,9 @@
 
 # Chapter 19: Comprehensive Tools Guide - All 47 MCP Tools
 
+---
+
 This chapter provides a complete reference to all 47 MCP tools Pierre offers for fitness data analysis. You'll learn tool categories, natural language prompt examples, and how AI assistants discover and use these tools.
-
-## What You'll Learn
-
-- Complete tool inventory (47 tools)
-- Tool categorization (8 categories)
-- Natural language prompt patterns
-- Tool discovery via `tools/list`
-- Parameter schemas and validation
-- Connection vs analytics vs configuration tools
-- Real-world usage examples
-- Tool chaining patterns
 
 ## Tool Overview
 

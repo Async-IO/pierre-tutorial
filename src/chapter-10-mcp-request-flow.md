@@ -3,21 +3,7 @@
 
 # Chapter 10: MCP Protocol Deep Dive - Request Flow
 
-This chapter explores how the Pierre Fitness Platform processes Model Context Protocol (MCP) requests from start to finish. You'll learn about request validation, method routing, authentication extraction, tool dispatch, and response serialization.
-
-## What You'll Learn
-
-- MCP request lifecycle from socket to response
-- Request validation (jsonrpc version, method field)
-- Method routing with pattern matching
-- Authentication token extraction (HTTP header vs params)
-- Tenant context extraction for multi-tenancy
-- Tool handler dispatch and execution
-- Response serialization and error handling
-- Output formatters (JSON and TOON for LLM efficiency)
-- Notification handling (no response)
-- Structured logging with tracing spans
-- Performance measurement and monitoring
+---
 
 ## MCP Request Lifecycle
 
