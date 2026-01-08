@@ -150,6 +150,8 @@ function App() {
 
 ### Dashboard Tabs
 
+The Dashboard component renders different interfaces based on user role:
+
 | Tab | Component | Description |
 |-----|-----------|-------------|
 | Home | `OverviewTab.tsx` | Statistics overview |
@@ -159,6 +161,228 @@ function App() {
 | Monitor | `RequestMonitor.tsx` | Request logs |
 | Settings | `UserSettings.tsx` | Profile settings |
 | Admin | `AdminConfiguration.tsx` | Admin-only settings |
+
+## Admin vs User Mode
+
+Pierre has three user roles that determine the UI experience:
+
+| Role | Access Level | Default Tab |
+|------|--------------|-------------|
+| `user` | User mode only | Chat |
+| `admin` | Admin + User modes | Overview |
+| `super_admin` | Full access including token management | Overview |
+
+### User Mode (Regular Users)
+
+**Source**: `frontend/src/components/Dashboard.tsx:207-248`
+
+Regular users see a clean, focused interface:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  Pierre Fitness Intelligence                                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│                      AI Chat Interface                           │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                                                          │   │
+│  │          Welcome! Ask me about your fitness data.        │   │
+│  │                                                          │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │   │
+│  │  │  Training   │ │  Nutrition  │ │  Recovery   │       │   │
+│  │  │  ⚡ Activity │ │  🥗 Amber   │ │  💤 Indigo  │       │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────┘       │   │
+│  │                                                          │   │
+│  │  [Message input field...]                    [Send]     │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                  │
+│                                        [⚙️ Settings]            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**User mode features**:
+- **Chat Tab**: AI conversation with prompt suggestions organized by pillar
+- **Settings Tab**: Access via gear icon in chat header
+
+```typescript
+// Dashboard.tsx - User mode check
+if (!isAdminUser) {
+  return (
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
+      {/* Minimal header */}
+      <header className="h-12 border-b border-pierre-gray-100">
+        <PierreLogoSmall />
+        <span>Pierre Fitness Intelligence</span>
+      </header>
+
+      {/* Chat or Settings content */}
+      <main className="flex-1 overflow-hidden">
+        {activeTab === 'chat' && <ChatTab onOpenSettings={() => setActiveTab('settings')} />}
+        {activeTab === 'settings' && <UserSettings />}
+      </main>
+    </div>
+  );
+}
+```
+
+### User Settings Tabs
+
+**Source**: `frontend/src/components/UserSettings.tsx:45-83`
+
+Regular users have access to four settings tabs:
+
+| Tab | Description | Features |
+|-----|-------------|----------|
+| **Profile** | User identity | Display name, email (read-only), avatar |
+| **Connections** | OAuth credentials | Add/remove Strava, Fitbit, Garmin, WHOOP, Terra credentials |
+| **API Tokens** | MCP tokens | Create/revoke tokens for Claude Desktop, Cursor IDE |
+| **Account** | Account management | Status, role, sign out, danger zone |
+
+```typescript
+const SETTINGS_TABS: { id: SettingsTab; name: string }[] = [
+  { id: 'profile', name: 'Profile' },
+  { id: 'connections', name: 'Connections' },
+  { id: 'tokens', name: 'API Tokens' },
+  { id: 'account', name: 'Account' },
+];
+```
+
+### Admin Mode (Admin/Super Admin)
+
+**Source**: `frontend/src/components/Dashboard.tsx:250-540`
+
+Admins see a full sidebar with navigation:
+
+```
+┌──────────────┬──────────────────────────────────────────────────┐
+│              │                                                  │
+│  [Pierre]    │  Overview                                        │
+│              │                                                  │
+│  Overview ● │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐│
+│  Connections │  │ Total Users │ │ Active Keys │ │ Requests    ││
+│  Analytics   │  │     127     │ │      45     │ │   12,847    ││
+│  Monitor     │  └─────────────┘ └─────────────┘ └─────────────┘│
+│  Tools       │                                                  │
+│  Users    🔴 │  Weekly Usage Chart                              │
+│  Config      │  [═══════════════════════════════════════]       │
+│  Prompts     │                                                  │
+│  Settings    │  Rate Limits          A2A Connections            │
+│              │  [████████░░] 80%     ● Client A    Connected    │
+│  ──────────  │                       ● Client B    Connected    │
+│  👤 Admin    │                                                  │
+│  [Sign out]  │                                                  │
+│              │                                                  │
+└──────────────┴──────────────────────────────────────────────────┘
+```
+
+**Admin tabs** (9 total):
+
+| Tab | Component | Description |
+|-----|-----------|-------------|
+| **Overview** | `OverviewTab.tsx` | Dashboard statistics, quick links |
+| **Connections** | `UnifiedConnections.tsx` | A2A clients, OAuth connections |
+| **Analytics** | `UsageAnalytics.tsx` | Usage charts, trends |
+| **Monitor** | `RequestMonitor.tsx` | Real-time request logs |
+| **Tools** | `ToolUsageBreakdown.tsx` | Tool usage analysis |
+| **Users** | `UserManagement.tsx` | User list, approve/suspend (badge shows pending count) |
+| **Configuration** | `AdminConfiguration.tsx` | LLM providers, tenant settings |
+| **Prompts** | `PromptsAdminTab.tsx` | Manage AI prompts (see Chapter 34) |
+| **Settings** | `AdminSettings.tsx` | Auto-approval, security settings |
+
+**Super admin additional tab**:
+
+| Tab | Component | Description |
+|-----|-----------|-------------|
+| **Admin Tokens** | `ApiKeyList.tsx` / `ApiKeyDetails.tsx` | System API key management |
+
+```typescript
+// Admin tabs definition
+const adminTabs: TabDefinition[] = [
+  { id: 'overview', name: 'Overview', icon: <ChartIcon /> },
+  { id: 'connections', name: 'Connections', icon: <WifiIcon /> },
+  { id: 'analytics', name: 'Analytics', icon: <GraphIcon /> },
+  { id: 'monitor', name: 'Monitor', icon: <EyeIcon /> },
+  { id: 'tools', name: 'Tools', icon: <GearIcon /> },
+  { id: 'users', name: 'Users', icon: <UsersIcon />, badge: pendingUsers.length },
+  { id: 'configuration', name: 'Configuration', icon: <SlidersIcon /> },
+  { id: 'prompts', name: 'Prompts', icon: <ChatIcon /> },
+  { id: 'admin-settings', name: 'Settings', icon: <SettingsIcon /> },
+];
+
+// Super admin extends with token management
+const superAdminTabs = [
+  ...adminTabs,
+  { id: 'admin-tokens', name: 'Admin Tokens', icon: <KeyIcon /> },
+];
+```
+
+### Role Detection
+
+**Source**: `frontend/src/components/Dashboard.tsx:77-82`
+
+```typescript
+const { user, logout } = useAuth();
+const isAdminUser = user?.role === 'admin' || user?.role === 'super_admin';
+const isSuperAdmin = user?.role === 'super_admin';
+
+// Default tab based on role
+const [activeTab, setActiveTab] = useState(isAdminUser ? 'overview' : 'chat');
+```
+
+### Admin-Only Features
+
+**Users Tab** (`UserManagement.tsx`):
+- View all registered users
+- Approve pending registrations
+- Suspend/unsuspend users
+- View user activity details
+
+**Configuration Tab** (`AdminConfiguration.tsx`):
+- LLM provider selection (OpenAI, Anthropic, etc.)
+- Model configuration
+- Tenant-specific settings
+
+**Prompts Tab** (`PromptsAdminTab.tsx`):
+- Manage prompt categories
+- Edit welcome message
+- Customize system prompt
+- Reset to defaults
+
+**Settings Tab** (`AdminSettings.tsx`):
+- Toggle auto-approval for registrations
+- System information display
+- Security recommendations
+
+### Pending Users Badge
+
+The Users tab shows a red badge when users are pending approval:
+
+```typescript
+const { data: pendingUsers = [] } = useQuery<User[]>({
+  queryKey: ['pending-users'],
+  queryFn: () => apiService.getPendingUsers(),
+  staleTime: 30_000,
+  enabled: isAdminUser,
+});
+
+// In tab definition
+{ id: 'users', name: 'Users', badge: pendingUsers.length > 0 ? pendingUsers.length : undefined }
+```
+
+### Sidebar Collapse
+
+The admin sidebar can be collapsed for more screen space:
+
+```typescript
+const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+// Collapsed: 72px, Expanded: 260px
+<aside className={clsx(
+  'fixed left-0 top-0 h-screen',
+  sidebarCollapsed ? 'w-[72px]' : 'w-[260px]'
+)}>
+```
 
 ## Service Layer
 
