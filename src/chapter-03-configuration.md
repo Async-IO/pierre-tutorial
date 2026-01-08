@@ -3,12 +3,6 @@
 
 # Chapter 3: Configuration Management & Environment Variables
 
-> **Learning Objectives**: Master environment-driven configuration in Rust, understand type-safe config patterns, and learn how Pierre implements the algorithm selection system.
->
-> **Prerequisites**: Chapters 1-2, basic understanding of environment variables
->
-> **Estimated Time**: 2-3 hours
-
 ---
 
 ## Introduction
@@ -795,94 +789,6 @@ validated_config.use_in_production();
                   │  5. Application Runtime   │
                   │     get_server_config()   │
                   └───────────────────────────┘
-```
-
----
-
-## Practical Exercises
-
-### Exercise 1: Create a Custom Config Enum
-
-Define a `CacheBackend` enum for cache configuration:
-
-```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CacheBackend {
-    // TODO: Add variants for:
-    // - Memory (in-process LRU cache)
-    // - Redis (with connection string)
-    // - Disabled (no caching)
-}
-
-impl CacheBackend {
-    pub fn from_env() -> Self {
-        // TODO: Parse from CACHE_BACKEND environment variable
-        // Default to Memory if not set
-    }
-}
-```
-
-**Solution**:
-```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum CacheBackend {
-    Memory,
-    Redis { connection_string: String },
-    Disabled,
-}
-
-impl CacheBackend {
-    pub fn from_env() -> Self {
-        match env::var("CACHE_BACKEND").ok() {
-            Some(s) if s.starts_with("redis://") => Self::Redis {
-                connection_string: s,
-            },
-            Some(s) if s == "disabled" => Self::Disabled,
-            _ => Self::Memory,  // Default
-        }
-    }
-}
-```
-
-### Exercise 2: Add Validation to Config Struct
-
-Implement validation for algorithm configuration:
-
-```rust
-impl AlgorithmConfig {
-    pub fn validate(&self) -> Result<(), ConfigError> {
-        // TODO: Validate that algorithm names are known
-        // Valid TSS algorithms: avg_power, normalized_power, hybrid
-        // Valid MaxHR algorithms: fox, tanaka, nes, gulati
-    }
-}
-```
-
-**Solution**:
-```rust
-impl AlgorithmConfig {
-    pub fn validate(&self) -> Result<(), ConfigError> {
-        // Validate TSS algorithm
-        match self.tss.as_str() {
-            "avg_power" | "normalized_power" | "hybrid" => {}
-            _ => return Err(ConfigError::InvalidValue {
-                field: "tss".to_string(),
-                value: self.tss.clone(),
-            }),
-        }
-
-        // Validate MaxHR algorithm
-        match self.maxhr.as_str() {
-            "fox" | "tanaka" | "nes" | "gulati" => {}
-            _ => return Err(ConfigError::InvalidValue {
-                field: "maxhr".to_string(),
-                value: self.maxhr.clone(),
-            }),
-        }
-
-        Ok(())
-    }
-}
 ```
 
 ---

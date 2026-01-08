@@ -3,12 +3,6 @@
 
 # Chapter 5: Cryptographic Key Management
 
-> **Learning Objectives**: Master Pierre's two-tier key management system (MEK + DEK), understand RSA key generation for JWT signing, learn JWKS management, and use the `zeroize` crate for secure memory cleanup.
->
-> **Prerequisites**: Chapters 1-4, basic understanding of encryption concepts
->
-> **Estimated Time**: 2-3 hours
-
 ---
 
 ## Introduction
@@ -615,47 +609,6 @@ fn use_key() {
 ```
 
 **Reference**: [zeroize crate docs](https://docs.rs/zeroize/)
-
----
-
-## Practical Exercises
-
-### Exercise 1: Implement AES Encryption
-
-Implement encryption with AES-256-GCM:
-
-```rust
-use aes_gcm::{Aes256Gcm, KeyInit};
-
-fn encrypt_data(key: &[u8; 32], plaintext: &[u8]) -> Result<Vec<u8>> {
-    // TODO:
-    // 1. Create Aes256Gcm cipher
-    // 2. Generate random nonce
-    // 3. Encrypt plaintext
-    // 4. Prepend nonce to ciphertext
-}
-```
-
-### Exercise 2: Use Zeroize
-
-Add secure cleanup to key generation:
-
-```rust
-use zeroize::Zeroize;
-
-fn generate_api_key() -> String {
-    let mut random_bytes = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut random_bytes);
-
-    let api_key = base64::encode(&random_bytes);
-
-    // TODO: Zeroize random_bytes before returning
-
-    api_key
-}
-```
-
-**Solution**: Add `random_bytes.zeroize();` before return
 
 ---
 

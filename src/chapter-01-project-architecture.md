@@ -3,12 +3,6 @@
 
 # Chapter 1: Project Architecture & Module Organization
 
-> **Learning Objectives**: Understand the Pierre codebase structure, Rust module system, and how the project is organized for maintainability and scalability.
->
-> **Prerequisites**: Basic Rust syntax, familiarity with `cargo` commands
->
-> **Estimated Time**: 2-3 hours
-
 ---
 
 ## Introduction
@@ -508,12 +502,13 @@ src/
         ├── mod.rs
         └── handlers/
             ├── mod.rs
-            ├── strava_api.rs
+            ├── fitness_api.rs
             ├── intelligence.rs
             ├── goals.rs
             ├── configuration.rs
             ├── sleep_recovery.rs
             ├── nutrition.rs
+            ├── recipes.rs
             └── connections.rs
 ```
 
@@ -522,21 +517,23 @@ src/
 ```rust
 //! MCP tool handlers for all tool categories
 
-pub mod strava_api;
+pub mod fitness_api;
 pub mod intelligence;
 pub mod goals;
 pub mod configuration;
 pub mod sleep_recovery;
 pub mod nutrition;
+pub mod recipes;
 pub mod connections;
 
 // Re-export all handler functions
-pub use strava_api::*;
+pub use fitness_api::*;
 pub use intelligence::*;
 pub use goals::*;
 pub use configuration::*;
 pub use sleep_recovery::*;
 pub use nutrition::*;
+pub use recipes::*;
 pub use connections::*;
 ```
 
@@ -853,40 +850,6 @@ grep -r "pub struct" src/
 - **Data layer** is abstracted (pluggable backends)
 - **Infrastructure** is cross-cutting (auth, middleware, logging)
 - **Domain logic** is isolated (providers, intelligence)
-
----
-
-## Practical Exercises
-
-### Exercise 1: Explore Module Structure
-
-1. Open `src/lib.rs` and count the `pub mod` declarations
-2. For each protocol module (`mcp`, `a2a`, `protocols`), open its `mod.rs`
-3. Draw a mental map of 3-level deep module hierarchy
-
-**Expected output**: Understanding of how modules nest and relate
-
-### Exercise 2: Trace an Import Path
-
-1. Open `src/bin/pierre-mcp-server.rs`
-2. Find the import: `use pierre_mcp_server::mcp::multitenant::MultiTenantMcpServer`
-3. Navigate the path:
-   - `src/lib.rs` → `pub mod mcp;`
-   - `src/mcp/mod.rs` → `pub mod multitenant;`
-   - `src/mcp/multitenant.rs` → `pub struct MultiTenantMcpServer`
-
-**Expected output**: Comfortable navigating nested modules
-
-### Exercise 3: Identify Feature Flags
-
-1. Search `Cargo.toml` for `[features]` section
-2. Find all `#[cfg(feature = "...")]` in `src/database_plugins/factory.rs`
-3. Run build with different features:
-   ```bash
-   cargo build --no-default-features --features postgresql
-   ```
-
-**Expected output**: Understanding conditional compilation
 
 ---
 

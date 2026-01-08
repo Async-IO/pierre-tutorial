@@ -3,12 +3,6 @@
 
 # Chapter 4: Dependency Injection with Context Pattern
 
-> **Learning Objectives**: Understand dependency injection in Rust using Arc<T>, learn the service locator anti-pattern and how Pierre is evolving toward focused contexts, master shared ownership patterns.
->
-> **Prerequisites**: Chapters 1-3, understanding of ownership and borrowing
->
-> **Estimated Time**: 3-4 hours
-
 ---
 
 ## Introduction
@@ -605,95 +599,6 @@ for _ in 0..10 {
          │  (Arc counter = N)               │
          │  Memory allocated once           │
          └──────────────────────────────────┘
-```
-
----
-
-## Practical Exercises
-
-### Exercise 1: Implement Dependency Injection
-
-Create a simple service with dependency injection:
-
-```rust
-use std::sync::Arc;
-
-struct Database {
-    connection_string: String,
-}
-
-impl Database {
-    fn new(conn: &str) -> Self {
-        Self { connection_string: conn.to_string() }
-    }
-
-    fn query(&self, sql: &str) -> String {
-        format!("Querying {} with: {}", self.connection_string, sql)
-    }
-}
-
-// TODO: Create UserService that depends on Database
-// Use Arc for shared ownership
-```
-
-**Solution**:
-```rust
-struct UserService {
-    database: Arc<Database>,
-}
-
-impl UserService {
-    fn new(database: Arc<Database>) -> Self {
-        Self { database }
-    }
-
-    fn get_user(&self, id: u32) -> String {
-        self.database.query(&format!("SELECT * FROM users WHERE id = {}", id))
-    }
-}
-
-// Usage
-fn main() {
-    let db = Arc::new(Database::new("postgres://localhost"));
-    let user_service = UserService::new(Arc::clone(&db));
-    println!("{}", user_service.get_user(1));
-}
-```
-
-### Exercise 2: Convert to Focused Contexts
-
-Refactor this service locator into focused contexts:
-
-```rust
-struct AppState {
-    database: Arc<Database>,
-    auth: Arc<AuthManager>,
-    cache: Arc<Cache>,
-    mailer: Arc<Mailer>,
-    logger: Arc<Logger>,
-}
-
-async fn authenticate(state: &AppState, token: &str) -> Result<User> {
-    // Only uses auth and database
-    todo!()
-}
-
-// TODO: Create AuthContext and use it instead
-```
-
-**Solution**:
-```rust
-#[derive(Clone)]
-struct AuthContext {
-    auth: Arc<AuthManager>,
-    database: Arc<Database>,
-}
-
-async fn authenticate(ctx: &AuthContext, token: &str) -> Result<User> {
-    let claims = ctx.auth.verify_token(token)?;
-    let user = ctx.database.get_user(&claims.user_id).await?;
-    Ok(user)
-}
 ```
 
 ---

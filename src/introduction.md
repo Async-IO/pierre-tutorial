@@ -35,11 +35,9 @@ Each chapter builds on previous ones but can also be read standalone for referen
 6. **Chapters 23-31**: Operations and advanced topics
 
 Each chapter includes:
-- **Learning Objectives** - What you'll understand after reading
 - **Prerequisites** - Prior knowledge needed
 - **Code Examples** - Real code from the Pierre codebase
 - **Rust Idioms** - Explanations of patterns and best practices
-- **Practical Exercises** - Hands-on coding challenges
 
 ## About Pierre
 
