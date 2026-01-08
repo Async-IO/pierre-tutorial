@@ -15,6 +15,8 @@ preferred-dark-theme = "ayu"
 git-repository-url = "https://github.com/Async-IO/pierre-tutorial"
 edit-url-template = "https://github.com/Async-IO/pierre-tutorial/edit/main/{path}"
 site-url = "/pierre-tutorial/"
+additional-css = ["theme/version-footer.css"]
+additional-js = ["theme/version-footer.js"]
 
 [output.html.print]
 enable = true

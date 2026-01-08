@@ -1,5 +1,5 @@
 # ABOUTME: GitHub Actions workflow for deploying mdBook to GitHub Pages
-# ABOUTME: Builds the book on every push to main and deploys to Pages
+# ABOUTME: Builds the book with version info from pierre_mcp_server and deploys to Pages
 
 name: Deploy mdBook to GitHub Pages
 
@@ -7,6 +7,9 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  # Rebuild daily to keep "Updated" date fresh if pierre_mcp_server changes
+  schedule:
+    - cron: '0 6 * * *'  # 6 AM UTC daily
 
 permissions:
   contents: read
@@ -21,8 +24,54 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout tutorial
         uses: actions/checkout@v4
+
+      - name: Checkout pierre_mcp_server for version info
+        uses: actions/checkout@v4
+        with:
+          repository: Async-IO/pierre_mcp_server
+          path: pierre_mcp_server
+          fetch-depth: 1
+
+      - name: Extract version information
+        id: version
+        run: |
+          # Extract version from Cargo.toml
+          PIERRE_VERSION=$(grep '^version = ' pierre_mcp_server/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+
+          # Get commit info from pierre_mcp_server
+          cd pierre_mcp_server
+          COMMIT_HASH=$(git rev-parse HEAD)
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          cd ..
+
+          # Build date
+          BUILD_DATE=$(date -u +"%Y-%m-%d")
+
+          # Export for later steps
+          echo "pierre_version=$PIERRE_VERSION" >> $GITHUB_OUTPUT
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "commit_short=$COMMIT_SHORT" >> $GITHUB_OUTPUT
+          echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
+
+          echo "📦 Pierre version: $PIERRE_VERSION"
+          echo "🔗 Commit: $COMMIT_SHORT ($COMMIT_HASH)"
+          echo "📅 Build date: $BUILD_DATE"
+
+      - name: Generate version.json
+        run: |
+          cat > version.json << EOF
+          {
+            "pierre_version": "${{ steps.version.outputs.pierre_version }}",
+            "commit_hash": "${{ steps.version.outputs.commit_hash }}",
+            "commit_short": "${{ steps.version.outputs.commit_short }}",
+            "build_date": "${{ steps.version.outputs.build_date }}",
+            "repo_url": "https://github.com/Async-IO/pierre_mcp_server"
+          }
+          EOF
+          echo "Generated version.json:"
+          cat version.json
 
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v2
@@ -31,6 +80,9 @@ jobs:
 
       - name: Build the book
         run: mdbook build
+
+      - name: Copy version.json to build output
+        run: cp version.json book/version.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

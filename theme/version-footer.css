@@ -1,0 +1,74 @@
+/* ABOUTME: Custom footer styles for version information */
+/* ABOUTME: Displays Pierre version, commit hash, and build date */
+
+.version-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+    border-top: 1px solid #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    font-size: 12px;
+    color: #a0a0a0;
+    z-index: 1000;
+    padding: 0 16px;
+}
+
+.version-footer a {
+    color: #7c3aed;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.version-footer a:hover {
+    color: #a78bfa;
+}
+
+.version-footer .separator {
+    color: #404040;
+}
+
+.version-footer .version-badge {
+    background: rgba(124, 58, 237, 0.15);
+    color: #a78bfa;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.version-footer .commit-hash {
+    font-family: monospace;
+    color: #6b7280;
+}
+
+/* Adjust main content to account for footer */
+.content {
+    padding-bottom: 48px !important;
+}
+
+/* Dark theme adjustments */
+.ayu .version-footer,
+.coal .version-footer,
+.navy .version-footer {
+    background: linear-gradient(90deg, #0d1117 0%, #161b22 100%);
+    border-top-color: #30363d;
+}
+
+/* Light theme adjustments */
+.light .version-footer,
+.rust .version-footer {
+    background: linear-gradient(90deg, #f6f8fa 0%, #ffffff 100%);
+    border-top-color: #d0d7de;
+    color: #57606a;
+}
+
+.light .version-footer .version-badge,
+.rust .version-footer .version-badge {
+    background: rgba(124, 58, 237, 0.1);
+    color: #7c3aed;
+}
