@@ -38,12 +38,12 @@ This chapter covers Pierre's database-backed prompt management system, which ena
 
 ## Database Schema
 
-### Prompt Categories Table
+### Prompt Suggestions Table
 
-**Source**: `migrations/20250107000000_prompt_categories.sql`
+**Source**: `migrations/20250120000023_prompts_schema.sql`
 
 ```sql
-CREATE TABLE IF NOT EXISTS prompt_categories (
+CREATE TABLE IF NOT EXISTS prompt_suggestions (
     id TEXT PRIMARY KEY,
     tenant_id TEXT NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     category_key TEXT NOT NULL,
@@ -58,15 +58,17 @@ CREATE TABLE IF NOT EXISTS prompt_categories (
     UNIQUE(tenant_id, category_key)
 );
 
-CREATE INDEX IF NOT EXISTS idx_prompt_categories_tenant
-    ON prompt_categories(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_prompt_categories_active
-    ON prompt_categories(tenant_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_prompt_suggestions_tenant
+    ON prompt_suggestions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_prompt_suggestions_active
+    ON prompt_suggestions(tenant_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_prompt_suggestions_order
+    ON prompt_suggestions(tenant_id, display_order);
 ```
 
 ### Welcome Prompts Table
 
-**Source**: `migrations/20250107000001_welcome_prompts.sql`
+**Source**: `migrations/20250120000023_prompts_schema.sql` (same file)
 
 ```sql
 CREATE TABLE IF NOT EXISTS welcome_prompts (
@@ -309,7 +311,7 @@ impl PromptManager {
     }
 
     /// Get active prompt categories for a tenant
-    pub async fn get_prompt_categories(
+    pub async fn get_prompt_suggestions(
         &self,
         tenant_id: &str,
     ) -> AppResult<Vec<PromptCategory>> {
@@ -318,7 +320,7 @@ impl PromptManager {
             SELECT id, tenant_id, category_key, category_title,
                    category_icon, pillar, prompts, display_order, is_active,
                    created_at, updated_at
-            FROM prompt_categories
+            FROM prompt_suggestions
             WHERE tenant_id = ? AND is_active = 1
             ORDER BY display_order ASC, category_title ASC
             "#,
@@ -342,7 +344,7 @@ impl PromptManager {
 
         sqlx::query(
             r#"
-            INSERT INTO prompt_categories
+            INSERT INTO prompt_suggestions
             (id, tenant_id, category_key, category_title, category_icon,
              pillar, prompts, display_order, is_active, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
@@ -367,7 +369,7 @@ impl PromptManager {
     /// Reset prompts to defaults from JSON file
     pub async fn reset_to_defaults(&self, tenant_id: &str) -> AppResult<()> {
         // Delete existing categories
-        sqlx::query("DELETE FROM prompt_categories WHERE tenant_id = ?")
+        sqlx::query("DELETE FROM prompt_suggestions WHERE tenant_id = ?")
             .bind(tenant_id)
             .execute(&self.pool)
             .await?;

@@ -153,8 +153,8 @@ bitflags::bitflags! {
 }
 
 impl ProviderCapabilities {
-    /// Full fitness provider (OAuth + activities)
-    pub const fn full_fitness() -> Self {
+    /// Activity-only provider (OAuth + activities)
+    pub const fn activity_only() -> Self {
         Self::OAUTH.union(Self::ACTIVITIES)
     }
 
@@ -1373,7 +1373,7 @@ export PIERRE_STRAVA_CLIENT_SECRET=test-secret
 
 3. **Service Provider Interface (SPI)**: `ProviderDescriptor` trait enables external providers to register without core code changes.
 
-4. **Bitflags capabilities**: `ProviderCapabilities` uses efficient bitflags with combinators like `full_health()` and `full_fitness()`.
+4. **Bitflags capabilities**: `ProviderCapabilities` uses efficient bitflags with combinators like `activity_only()` and `full_health()`.
 
 5. **1 to x providers**: System supports unlimited providers simultaneously - just Strava, or Strava + Garmin + custom providers.
 

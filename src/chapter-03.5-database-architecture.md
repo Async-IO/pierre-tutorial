@@ -230,7 +230,7 @@ pub trait UserRepository: Send + Sync {
         &self,
         id: Uuid,
         new_status: UserStatus,
-        admin_token_id: &str,
+        approved_by: Option<Uuid>,
     ) -> Result<User, DatabaseError>;
 
     /// Update user's tenant_id to link them to a tenant
