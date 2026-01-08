@@ -23,32 +23,32 @@ This chapter explores pierre's pluggable provider architecture that enables runt
 Pierre implements a **fully pluggable provider system** where fitness providers are registered at runtime through a factory pattern. The system supports **1 to x providers simultaneously**, meaning you can use just Strava, or Strava + Garmin + Fitbit + custom providers all at once.
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                      ProviderRegistry (runtime)                        │
-│           Manages 1 to x providers with dynamic discovery              │
-└────────────┬──────────────────────────────────────────────────────────┘
-             │
-    ┌────────┴────────┬───────────┬────────────┬──────────┬─────────┬─────────────┐
-    │                 │           │            │          │         │             │
-    ▼                 ▼           ▼            ▼          ▼         ▼             ▼
-┌─────────┐    ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────┐  ┌─────────┐  ┌─────────┐
-│ Strava  │    │ Garmin  │  │  Terra  │  │ Fitbit  │  │ WHOOP │  │Synthetic│  │ Custom  │
-│ Factory │    │ Factory │  │ Factory │  │ Factory │  │Factory│  │ Factory │  │ Factory │
-└────┬────┘    └────┬────┘  └────┬────┘  └────┬────┘  └───┬───┘  └────┬────┘  └────┬────┘
-     │              │           │            │           │            │            │
-     ▼              ▼           ▼            ▼           ▼            ▼            ▼
-┌─────────┐    ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────┐  ┌─────────┐  ┌─────────┐
-│ Strava  │    │ Garmin  │  │  Terra  │  │ Fitbit  │  │ WHOOP │  │Synthetic│  │ Custom  │
-│Provider │    │Provider │  │Provider │  │Provider │  │Provdr │  │Provider │  │Provider │
-└─────────┘    └─────────┘  └─────────┘  └─────────┘  └───────┘  └─────────┘  └─────────┘
-     │              │           │            │           │            │            │
-     └──────────────┴───────────┴────────────┴───────────┴────────────┴────────────┘
-                                    │
-                                    ▼
-                     ┌──────────────────────────┐
-                     │   FitnessProvider Trait  │
-                     │   (shared interface)     │
-                     └──────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│                           ProviderRegistry (runtime)                                │
+│                 Manages 1 to x providers with dynamic discovery                     │
+└───────────┬────────────────────────────────────────────────────────────────────────┘
+            │
+   ┌────────┴────────┬───────────┬────────────┬──────────┬────────┬─────────┬─────────────┐
+   │                 │           │            │          │        │         │             │
+   ▼                 ▼           ▼            ▼          ▼        ▼         ▼             ▼
+┌─────────┐   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────┐ ┌───────┐ ┌─────────┐  ┌─────────┐
+│ Strava  │   │ Garmin  │  │  Terra  │  │ Fitbit  │  │ WHOOP │ │ COROS │ │Synthetic│  │ Custom  │
+│ Factory │   │ Factory │  │ Factory │  │ Factory │  │Factory│ │Factory│ │ Factory │  │ Factory │
+└────┬────┘   └────┬────┘  └────┬────┘  └────┬────┘  └───┬───┘ └───┬───┘ └────┬────┘  └────┬────┘
+     │             │           │            │           │         │          │            │
+     ▼             ▼           ▼            ▼           ▼         ▼          ▼            ▼
+┌─────────┐   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌───────┐ ┌───────┐ ┌─────────┐  ┌─────────┐
+│ Strava  │   │ Garmin  │  │  Terra  │  │ Fitbit  │  │ WHOOP │ │ COROS │ │Synthetic│  │ Custom  │
+│Provider │   │Provider │  │Provider │  │Provider │  │Provdr │ │Provdr │ │Provider │  │Provider │
+└─────────┘   └─────────┘  └─────────┘  └─────────┘  └───────┘ └───────┘ └─────────┘  └─────────┘
+     │             │           │            │           │         │          │            │
+     └─────────────┴───────────┴────────────┴───────────┴─────────┴──────────┴────────────┘
+                                           │
+                                           ▼
+                            ┌──────────────────────────┐
+                            │   FitnessProvider Trait  │
+                            │   (shared interface)     │
+                            └──────────────────────────┘
 ```
 
 **Key benefit**: Add, remove, or swap providers without modifying tool code, connection handlers, or application logic.
@@ -65,8 +65,9 @@ provider-garmin = []
 provider-terra = []
 provider-fitbit = []
 provider-whoop = []
+provider-coros = []
 provider-synthetic = []
-all-providers = ["provider-strava", "provider-garmin", "provider-terra", "provider-fitbit", "provider-whoop", "provider-synthetic"]
+all-providers = ["provider-strava", "provider-garmin", "provider-terra", "provider-fitbit", "provider-whoop", "provider-coros", "provider-synthetic"]
 ```
 
 **Build with specific providers**:
@@ -93,9 +94,16 @@ pub mod garmin_provider;
 #[cfg(feature = "provider-whoop")]
 pub mod whoop_provider;
 
+#[cfg(feature = "provider-coros")]
+pub mod coros_provider;
+
 #[cfg(feature = "provider-synthetic")]
 pub mod synthetic_provider;
 ```
+
+> **Note**: COROS API access requires applying to their developer program at
+> https://support.coros.com/hc/en-us/articles/17085887816340. Documentation is
+> provided after approval.
 
 ## Service Provider Interface (SPI)
 
@@ -560,7 +568,7 @@ Here's how to add a new provider using the SPI architecture:
 ```toml
 [features]
 provider-whoop = []
-all-providers = ["provider-strava", "provider-garmin", "provider-synthetic", "provider-whoop"]
+all-providers = ["provider-strava", "provider-garmin", "provider-terra", "provider-fitbit", "provider-whoop", "provider-coros", "provider-synthetic"]
 ```
 
 ### Step 2: Implement Providerdescriptor (SPI)
@@ -778,6 +786,10 @@ Pierre's architecture supports **multiple active providers per tenant/user**:
       "fitbit": {
         "connected": false,
         "status": "disconnected"
+      },
+      "coros": {
+        "connected": true,
+        "status": "connected"
       },
       "synthetic": {
         "connected": true,

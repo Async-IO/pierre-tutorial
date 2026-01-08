@@ -118,7 +118,7 @@ These tools retrieve fitness data and manage provider connections.
 
 **Use case**: Privacy management, switching accounts, troubleshooting.
 
-## 2. Data Access Tools (8 Tools)
+## 2. Data Access Tools (4 Tools)
 
 These tools fetch raw data from connected fitness providers.
 
@@ -199,60 +199,7 @@ These tools fetch raw data from connected fitness providers.
 
 **Use case**: Deep activity analysis, performance insights, environmental factors.
 
-### Get_notifications
-
-**Description**: Get OAuth notifications for the user.
-
-**Parameters**:
-```json
-{
-  "provider": "strava",     // Optional: filter by provider
-  "include_read": false     // Optional: include already read (default: false)
-}
-```
-
-**Natural language prompts**:
-- "Do I have any new notifications?"
-- "Show unread OAuth notifications"
-- "Check for Strava connection updates"
-
-**Use case**: OAuth completion tracking, connection diagnostics.
-
-### Mark_notifications_read
-
-**Description**: Mark OAuth notifications as read.
-
-**Parameters**:
-```json
-{
-  "notification_id": "abc123"  // Optional: specific notification ID
-}
-```
-
-**Natural language prompts**:
-- "Mark all notifications as read"
-- "Clear notification abc123"
-- "Dismiss OAuth notifications"
-
-**Use case**: Notification management, clearing completed OAuth flows.
-
-### Announce_oauth_success
-
-**Description**: Display OAuth connection success message in chat.
-
-**Natural language prompts**: (Typically called internally by Pierre)
-
-**Use case**: User feedback for successful OAuth flows.
-
-### Check_oauth_notifications
-
-**Description**: Check for pending OAuth notifications.
-
-**Natural language prompts**:
-- "Any pending OAuth completions?"
-- "Check if OAuth finished"
-
-**Use case**: Polling for OAuth completion in SDK.
+> **Note**: OAuth notifications are delivered via Server-Sent Events (SSE) and WebSocket connections rather than as MCP tools. See Chapter 11 (Transport Layers) for details on real-time notification delivery.
 
 ## 3. Intelligence & Analytics Tools (13 Tools)
 

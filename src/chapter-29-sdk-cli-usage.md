@@ -59,7 +59,7 @@ The CLI wraps `PierreMcpClient` and exposes it as a standard MCP client binary.
 
 **Source**: sdk/src/cli.ts:1-29
 ```ts
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 // ABOUTME: Command-line interface for Pierre MCP Client
 // ABOUTME: Parses arguments, configures MCP client, and manages process lifecycle

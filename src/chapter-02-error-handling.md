@@ -55,7 +55,7 @@ fn fetch_user(id: &str) -> anyhow::Result<User> {
 
 ### Structured Error Example (Correct)
 
-**Source**: `src/database/errors.rs:10-19`
+**Source**: `src/database/errors.rs:11-20`
 
 ```rust
 // DO THIS - Type-safe, structured errors
@@ -117,7 +117,7 @@ The `thiserror` crate provides a derive macro that auto-implements `std::error::
 
 ### Basic Thiserror Usage
 
-**Source**: `src/database/errors.rs:10-46`
+**Source**: `src/database/errors.rs:11-56`
 
 ```rust
 use thiserror::Error;
@@ -347,7 +347,7 @@ fn get_user(id: &str) -> Result<User, DatabaseError> {
 
 Pierre maps domain errors to HTTP status codes and error codes.
 
-**Source**: `src/errors.rs:17-85`
+**Source**: `src/errors.rs:41-100`
 
 ```rust
 /// Standard error codes used throughout the application
@@ -658,14 +658,14 @@ async fn fetch_with_retry(url: &str) -> Result<Response, ProviderError> {
 
 Pierre defines type aliases for cleaner signatures.
 
-**Source**: `src/database/errors.rs:109-110`
+**Source**: `src/database/errors.rs:143`
 
 ```rust
 /// Result type for database operations
 pub type DatabaseResult<T> = Result<T, DatabaseError>;
 ```
 
-**Source**: `src/providers/errors.rs:132-133`
+**Source**: `src/providers/errors.rs:200`
 
 ```rust
 /// Result type for provider operations

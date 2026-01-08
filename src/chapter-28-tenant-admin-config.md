@@ -299,11 +299,108 @@ async fn get_user_tenant(&self, user_id: Uuid) -> AppResult<Uuid> {
 
 This helper is reused across fitness configuration handlers to ensure every configuration is bound to the correct tenant.
 
+## Prompt Suggestions System
+
+Pierre includes a database-backed prompt suggestions system for AI chat interfaces. Prompts are organized into categories with visual theming based on "pillars" (Activity, Nutrition, Recovery).
+
+### Pillar Types
+
+**Source**: `src/database/prompts.rs`
+```rust
+/// Pillar types for visual categorization of prompts
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Pillar {
+    /// Activity pillar (Emerald gradient)
+    Activity,
+    /// Nutrition pillar (Amber gradient)
+    Nutrition,
+    /// Recovery pillar (Indigo gradient)
+    Recovery,
+}
+```
+
+### Prompt Category Model
+
+```rust
+/// A prompt suggestion category with its prompts
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptCategory {
+    /// Unique ID
+    pub id: Uuid,
+    /// Tenant this category belongs to
+    pub tenant_id: String,
+    /// Unique key (e.g., "training", "nutrition")
+    pub category_key: String,
+    /// Display title
+    pub category_title: String,
+    /// Emoji icon
+    pub category_icon: String,
+    /// Visual pillar classification
+    pub pillar: Pillar,
+    /// List of prompt suggestions
+    pub prompts: Vec<String>,
+    /// Display order (lower numbers shown first)
+    pub display_order: i32,
+    /// Whether active
+    pub is_active: bool,
+}
+```
+
+### Default Categories
+
+New tenants receive default prompt categories:
+
+| Category | Icon | Pillar | Sample Prompts |
+|----------|------|--------|----------------|
+| Training | 🏃 | Activity | "What should I focus on today?", "Analyze my form" |
+| Nutrition | 🥗 | Nutrition | "Plan my pre-workout meal", "Calculate my macros" |
+| Recovery | 😴 | Recovery | "Review my sleep quality", "Optimize my recovery" |
+
+### API Endpoints
+
+**Source**: `src/routes/prompts.rs`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/prompts/categories` | List active categories for tenant |
+| `POST` | `/api/prompts/categories` | Create new category |
+| `PUT` | `/api/prompts/categories/:key` | Update category |
+| `DELETE` | `/api/prompts/categories/:key` | Delete category |
+| `GET` | `/api/prompts/welcome` | Get welcome prompt for new users |
+
+### Response Format
+
+```json
+{
+  "categories": [
+    {
+      "category_key": "training",
+      "category_title": "Training",
+      "category_icon": "🏃",
+      "pillar": "activity",
+      "prompts": [
+        "What should I focus on in today's training?",
+        "Analyze my running form from recent activities"
+      ]
+    }
+  ]
+}
+```
+
+### Tenant Isolation
+
+Prompts are strictly tenant-isolated:
+- Each tenant has their own prompt categories
+- Categories are scoped by `tenant_id` in all queries
+- Tenants can customize prompts without affecting others
+
 ## Relationship to Earlier Chapters
 
 - **Chapter 7 (multi-tenant isolation)**: Covered database-level tenant separation; here you see the **HTTP admin surface** for managing tenants.
 - **Chapters 15–16 (OAuth server & client)**: Explained OAuth protocols; tenant routes add **per-tenant OAuth credentials and app registration**.
 - **Chapter 19 (tools guide)**: Configuration tools like `get_fitness_config` and `set_fitness_config` ultimately call into these REST routes under the hood (directly or via internal services).
+- **Chapter 26 (LLM providers)**: Prompt suggestions power the AI chat interface that uses LLM providers.
 
 ## Key Takeaways
 
@@ -312,4 +409,5 @@ This helper is reused across fitness configuration handlers to ensure every conf
 3. **OAuth apps**: Tenants can register OAuth clients for integrating external MCP tooling with Pierre.
 4. **Fitness configs**: Tenant- and user-scoped fitness configurations are stored via dedicated REST routes and used by intelligence algorithms.
 5. **Precedence**: User configs override tenant defaults, but both are visible via `list_configurations`.
-6. **Admin APIs**: These HTTP routes are the operational surface for SaaS administrators and automation tools.
+6. **Prompt suggestions**: Tenant-scoped prompt categories power AI chat interfaces with visual pillar theming.
+7. **Admin APIs**: These HTTP routes are the operational surface for SaaS administrators and automation tools.

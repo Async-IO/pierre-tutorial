@@ -13,7 +13,7 @@
 
 ## Introduction
 
-Pierre Fitness Platform is a production Rust application with 290 source files organized into a coherent module hierarchy. This chapter teaches you how to navigate the codebase, understand the module system, and recognize organizational patterns used throughout.
+Pierre Fitness Platform is a production Rust application with 330 source files organized into a coherent module hierarchy. This chapter teaches you how to navigate the codebase, understand the module system, and recognize organizational patterns used throughout.
 
 The codebase follows a **"library + binaries"** pattern where most functionality lives in `src/lib.rs` and binary entry points import from the library.
 
@@ -90,7 +90,7 @@ The `src/lib.rs` file is the central hub of the Pierre library. It declares all 
 
 1. **`// ABOUTME:` comments** - Human-readable file purpose (not rustdoc)
    - Quick context for developers scanning the codebase
-   - Appears at top of all 290 source files
+   - Appears at top of all 330 source files
 
 2. **Crate-level attributes** `#![...]`
    - `#![recursion_limit = "256"]`: Increases macro recursion limit
@@ -638,7 +638,7 @@ pub async fn new(
 
 ## Documentation Patterns
 
-Pierre follows consistent documentation practices across all 287 source files.
+Pierre follows consistent documentation practices across all 330 source files.
 
 ### Dual-Comment Pattern
 

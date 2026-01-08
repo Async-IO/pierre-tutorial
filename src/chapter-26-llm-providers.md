@@ -21,49 +21,50 @@ This chapter explores Pierre's LLM (Large Language Model) provider abstraction l
 The LLM module uses a **runtime provider selector** pattern. The `ChatProvider` enum wraps the underlying providers and selects based on the `PIERRE_LLM_PROVIDER` environment variable.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         Chat System                                         │
-│   ┌─────────────────────────────────────────────────────────────────────┐  │
-│   │                      ChatProvider                                    │  │
-│   │         Runtime selector: PIERRE_LLM_PROVIDER=groq|gemini           │  │
-│   └────────────────────────────┬────────────────────────────────────────┘  │
-│                                │                                            │
-│              ┌─────────────────┴─────────────────┐                         │
-│              │                                   │                          │
-│              ▼                                   ▼                          │
-│       ┌─────────────┐                     ┌─────────────┐                  │
-│       │   Gemini    │                     │    Groq     │                  │
-│       │  Provider   │                     │  Provider   │                  │
-│       │  (vision,   │                     │  (fast LPU  │                  │
-│       │   tools)    │                     │  inference) │                  │
-│       └──────┬──────┘                     └──────┬──────┘                  │
-│              │                                   │                          │
-│              └───────────────┬───────────────────┘                          │
-│                              │                                              │
-│                              ▼                                              │
-│               ┌───────────────────────────────┐                            │
-│               │      LlmProvider Trait        │                            │
-│               │  ┌─────────────────────────┐  │                            │
-│               │  │ + name()                │  │                            │
-│               │  │ + capabilities()        │  │                            │
-│               │  │ + complete()            │  │                            │
-│               │  │ + complete_stream()     │  │                            │
-│               │  │ + health_check()        │  │                            │
-│               │  └─────────────────────────┘  │                            │
-│               └───────────────────────────────┘                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                              Chat System                                              │
+│   ┌──────────────────────────────────────────────────────────────────────────────┐   │
+│   │                            ChatProvider                                       │   │
+│   │      Runtime selector: PIERRE_LLM_PROVIDER=groq|gemini|local|ollama|vllm     │   │
+│   └───────────────────────────────┬──────────────────────────────────────────────┘   │
+│                                   │                                                   │
+│          ┌────────────────────────┼────────────────────────┐                         │
+│          │                        │                        │                          │
+│          ▼                        ▼                        ▼                          │
+│   ┌─────────────┐          ┌─────────────┐          ┌─────────────┐                  │
+│   │   Gemini    │          │    Groq     │          │   Local     │                  │
+│   │  Provider   │          │  Provider   │          │  Provider   │                  │
+│   │  (vision,   │          │  (fast LPU  │          │  (Ollama,   │                  │
+│   │   tools)    │          │  inference) │          │  vLLM, etc) │                  │
+│   └──────┬──────┘          └──────┬──────┘          └──────┬──────┘                  │
+│          │                        │                        │                          │
+│          └────────────────────────┼────────────────────────┘                          │
+│                                   │                                                   │
+│                                   ▼                                                   │
+│                  ┌───────────────────────────────┐                                   │
+│                  │      LlmProvider Trait        │                                   │
+│                  │  ┌─────────────────────────┐  │                                   │
+│                  │  │ + name()                │  │                                   │
+│                  │  │ + capabilities()        │  │                                   │
+│                  │  │ + complete()            │  │                                   │
+│                  │  │ + complete_stream()     │  │                                   │
+│                  │  │ + health_check()        │  │                                   │
+│                  │  └─────────────────────────┘  │                                   │
+│                  └───────────────────────────────┘                                   │
+└──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Module Structure
 
 ```
 src/llm/
-├── mod.rs          # Trait definitions, types, registry, exports
-├── provider.rs     # ChatProvider enum (runtime selector)
-├── gemini.rs       # Google Gemini implementation
-├── groq.rs         # Groq LPU implementation
+├── mod.rs              # Trait definitions, types, registry, exports
+├── provider.rs         # ChatProvider enum (runtime selector)
+├── gemini.rs           # Google Gemini implementation
+├── groq.rs             # Groq LPU implementation
+├── openai_compatible.rs # OpenAI-compatible API (Ollama, vLLM, LocalAI)
 └── prompts/
-    └── mod.rs      # System prompts (pierre_system.md)
+    └── mod.rs          # System prompts (pierre_system.md)
 ```
 
 **Source**: `src/lib.rs`
@@ -78,22 +79,38 @@ pub mod llm;
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PIERRE_LLM_PROVIDER` | Provider selector: `groq` or `gemini` | `groq` |
+| `PIERRE_LLM_PROVIDER` | Provider selector: `groq`, `gemini`, `local`, `ollama`, `vllm`, `localai` | `groq` |
 | `GROQ_API_KEY` | Groq API key | Required for Groq |
 | `GEMINI_API_KEY` | Google Gemini API key | Required for Gemini |
+| `LOCAL_LLM_BASE_URL` | Base URL for OpenAI-compatible API | `http://localhost:11434/v1` (Ollama) |
+| `LOCAL_LLM_MODEL` | Model name for local provider | `qwen2.5:14b-instruct` |
+| `LOCAL_LLM_API_KEY` | API key (optional for local servers) | None |
 
 ### Provider Comparison
 
-| Feature | Groq | Gemini |
-|---------|------|--------|
-| Default | ✓ | |
-| Streaming | ✓ | ✓ |
-| Function Calling | ✓ | ✓ |
-| Vision | ✗ | ✓ |
-| JSON Mode | ✓ | ✓ |
-| System Messages | ✓ | ✓ |
-| Rate Limits | 12K TPM (free) | More generous |
-| Speed | Very fast (LPU) | Fast |
+| Feature | Groq | Gemini | Local (OpenAI-compatible) |
+|---------|------|--------|---------------------------|
+| Default | ✓ | | |
+| Streaming | ✓ | ✓ | ✓ |
+| Function Calling | ✓ | ✓ | ✓ (model dependent) |
+| Vision | ✗ | ✓ | Model dependent |
+| JSON Mode | ✓ | ✓ | ✓ |
+| System Messages | ✓ | ✓ | ✓ |
+| Rate Limits | 12K TPM (free) | More generous | None (local) |
+| Speed | Very fast (LPU) | Fast | Hardware dependent |
+| Privacy | Cloud | Cloud | **Local/Private** |
+| Cost | Free tier | Paid | Free (local hardware) |
+
+### Local Provider Backends
+
+The Local provider supports any OpenAI-compatible API:
+
+| Backend | Default URL | Notes |
+|---------|-------------|-------|
+| **Ollama** | `http://localhost:11434/v1` | Default, easy setup |
+| **vLLM** | `http://localhost:8000/v1` | High-throughput serving |
+| **LocalAI** | `http://localhost:8080/v1` | Lightweight alternative |
+| **Text Generation Inference** | `http://localhost:8080/v1` | Hugging Face optimized |
 
 ## Capability Detection with Bitflags
 
@@ -197,12 +214,14 @@ The `ChatProvider` enum provides runtime provider selection based on environment
 
 **Source**: `src/llm/provider.rs`
 ```rust
-/// Unified chat provider that wraps either Gemini or Groq
+/// Unified chat provider that wraps Gemini, Groq, or Local providers
 pub enum ChatProvider {
     /// Google Gemini provider with full tool calling support
     Gemini(GeminiProvider),
     /// Groq provider for fast, cost-effective inference
     Groq(GroqProvider),
+    /// Local LLM provider via OpenAI-compatible API (Ollama, vLLM, LocalAI)
+    Local(OpenAiCompatibleProvider),
 }
 
 impl ChatProvider {
@@ -211,6 +230,7 @@ impl ChatProvider {
     /// Reads `PIERRE_LLM_PROVIDER` to determine which provider to use:
     /// - `groq` (default): Creates `GroqProvider` (requires `GROQ_API_KEY`)
     /// - `gemini`: Creates `GeminiProvider` (requires `GEMINI_API_KEY`)
+    /// - `local`/`ollama`/`vllm`/`localai`: Creates `OpenAiCompatibleProvider`
     pub fn from_env() -> Result<Self, AppError> {
         let provider_type = LlmProviderType::from_env();
 
@@ -221,15 +241,15 @@ impl ChatProvider {
         );
 
         match provider_type {
-            LlmProviderType::Groq => {
-                let provider = GroqProvider::from_env()?;
-                Ok(Self::Groq(provider))
-            }
-            LlmProviderType::Gemini => {
-                let provider = GeminiProvider::from_env()?;
-                Ok(Self::Gemini(provider))
-            }
+            LlmProviderType::Groq => Self::groq(),
+            LlmProviderType::Gemini => Self::gemini(),
+            LlmProviderType::Local => Self::local(),
         }
+    }
+
+    /// Create a local LLM provider (Ollama, vLLM, LocalAI)
+    pub fn local() -> Result<Self, AppError> {
+        Ok(Self::Local(OpenAiCompatibleProvider::from_env()?))
     }
 
     /// Create a Gemini provider explicitly
@@ -497,9 +517,164 @@ impl std::fmt::Debug for GeminiProvider {
 }
 ```
 
+## OpenAI-Compatible Provider (Local LLM)
+
+The `OpenAiCompatibleProvider` enables integration with any OpenAI-compatible API, including local LLM servers.
+
+**Source**: `src/llm/openai_compatible.rs`
+
+### Use Cases
+
+- **Privacy-first deployments**: Run LLMs locally without sending data to cloud
+- **Cost optimization**: Use local hardware instead of API credits
+- **Air-gapped environments**: Deploy in networks without internet access
+- **Custom models**: Use fine-tuned or specialized models
+
+### Configuration
+
+```rust
+/// Default base URL (Ollama)
+const DEFAULT_BASE_URL: &str = "http://localhost:11434/v1";
+
+/// Default model for local inference
+const DEFAULT_MODEL: &str = "qwen2.5:14b-instruct";
+
+/// Connection timeout for local servers (more lenient than cloud)
+const CONNECT_TIMEOUT_SECS: u64 = 30;
+
+/// Request timeout (local inference can be slower)
+const REQUEST_TIMEOUT_SECS: u64 = 300;
+```
+
+### Setup Examples
+
+**Ollama (default)**:
+```bash
+# Start Ollama server
+ollama serve
+
+# Pull a model
+ollama pull qwen2.5:14b-instruct
+
+# Configure Pierre
+export PIERRE_LLM_PROVIDER=local
+# Uses defaults: http://localhost:11434/v1 and qwen2.5:14b-instruct
+```
+
+**vLLM**:
+```bash
+# Start vLLM server
+vllm serve meta-llama/Llama-3.1-8B-Instruct --api-key token-abc123
+
+# Configure Pierre
+export PIERRE_LLM_PROVIDER=local
+export LOCAL_LLM_BASE_URL=http://localhost:8000/v1
+export LOCAL_LLM_MODEL=meta-llama/Llama-3.1-8B-Instruct
+export LOCAL_LLM_API_KEY=token-abc123
+```
+
+**LocalAI**:
+```bash
+# Start LocalAI with a model
+docker run -p 8080:8080 localai/localai:latest
+
+# Configure Pierre
+export PIERRE_LLM_PROVIDER=local
+export LOCAL_LLM_BASE_URL=http://localhost:8080/v1
+export LOCAL_LLM_MODEL=gpt-3.5-turbo  # LocalAI model name
+```
+
+### Implementation
+
+```rust
+pub struct OpenAiCompatibleProvider {
+    client: Client,
+    base_url: String,
+    model: String,
+    api_key: Option<String>,
+}
+
+impl OpenAiCompatibleProvider {
+    /// Create provider from environment variables
+    pub fn from_env() -> Result<Self, AppError> {
+        let base_url = env::var(LOCAL_LLM_BASE_URL_ENV)
+            .unwrap_or_else(|_| DEFAULT_BASE_URL.to_owned());
+
+        let model = env::var(LOCAL_LLM_MODEL_ENV)
+            .unwrap_or_else(|_| DEFAULT_MODEL.to_owned());
+
+        let api_key = env::var(LOCAL_LLM_API_KEY_ENV).ok();
+
+        info!(
+            "Initializing OpenAI-compatible provider: base_url={}, model={}",
+            base_url, model
+        );
+
+        let client = Client::builder()
+            .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
+            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+            .build()
+            .map_err(|e| AppError::internal(format!("HTTP client error: {e}")))?;
+
+        Ok(Self {
+            client,
+            base_url,
+            model,
+            api_key,
+        })
+    }
+}
+
+#[async_trait]
+impl LlmProvider for OpenAiCompatibleProvider {
+    fn name(&self) -> &'static str {
+        "local"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "Local LLM (OpenAI-compatible)"
+    }
+
+    fn capabilities(&self) -> LlmCapabilities {
+        // Local providers typically support all features (model-dependent)
+        LlmCapabilities::STREAMING
+            | LlmCapabilities::FUNCTION_CALLING
+            | LlmCapabilities::SYSTEM_MESSAGES
+            | LlmCapabilities::JSON_MODE
+    }
+}
+```
+
+### Streaming Support
+
+The provider supports SSE streaming for real-time responses:
+
+```rust
+async fn complete_stream(&self, request: &ChatRequest) -> Result<ChatStream, AppError> {
+    let url = format!("{}/chat/completions", self.base_url);
+    let openai_request = self.build_request(request, true);
+
+    let response = self.client
+        .post(&url)
+        .json(&openai_request)
+        .send()
+        .await?;
+
+    // Parse SSE stream
+    let stream = response
+        .bytes_stream()
+        .map(|result| {
+            // Parse "data: {json}" SSE format
+            // Handle [DONE] marker
+        });
+
+    Ok(Box::pin(stream))
+}
+```
+
 ## Tool/Function Calling
 
-Both providers support tool calling for structured interactions:
+All three providers support tool calling for structured interactions:
 
 ```rust
 /// Complete a chat request with function calling support
@@ -511,6 +686,7 @@ pub async fn complete_with_tools(
     match self {
         Self::Gemini(provider) => provider.complete_with_tools(request, tools).await,
         Self::Groq(provider) => provider.complete_with_tools(request, tools).await,
+        Self::Local(provider) => provider.complete_with_tools(request, tools).await,
     }
 }
 ```

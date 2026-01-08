@@ -89,7 +89,7 @@ pub const JSONRPC_VERSION: &str = "2.0";
 
 A JSON-RPC request represents a method call from client to server or server to client:
 
-**Source**: src/jsonrpc/mod.rs:46-103
+**Source**: src/jsonrpc/mod.rs:51-78
 ```rust
 /// JSON-RPC 2.0 Request
 ///
@@ -691,7 +691,7 @@ Empty hashmaps are omitted from JSON. A request with no metadata serializes with
 
 The Pierre platform uses these JSON-RPC foundations to implement MCP:
 
-**Source**: src/mcp/protocol.rs:33-52
+**Source**: src/mcp/protocol.rs:40-48
 ```rust
 /// MCP protocol handlers
 pub struct ProtocolHandler;
@@ -720,7 +720,7 @@ The `McpRequest` and `McpResponse` types are aliases for `JsonRpcRequest` and `J
 
 The initialize method validates protocol versions:
 
-**Source**: src/mcp/protocol.rs:103-173
+**Source**: src/mcp/protocol.rs:177-247
 ```rust
 /// Internal initialize handler
 fn handle_initialize_internal(
@@ -808,7 +808,7 @@ This forward-compatibility pattern allows adding new protocol versions without b
 
 The simplest MCP method returns an empty result:
 
-**Source**: src/mcp/protocol.rs:175-179
+**Source**: src/mcp/protocol.rs:250-253
 ```rust
 /// Handle ping request
 pub fn handle_ping(request: McpRequest) -> McpResponse {
@@ -829,7 +829,7 @@ Clients use `ping` to test connectivity and measure latency.
 
 The tools/list method returns available MCP tools:
 
-**Source**: src/mcp/protocol.rs:181-187
+**Source**: src/mcp/protocol.rs:256-261
 ```rust
 /// Handle tools list request
 pub fn handle_tools_list(request: McpRequest) -> McpResponse {
@@ -864,7 +864,7 @@ The platform uses consistent error handling across JSON-RPC methods:
 
 ### Method Not Found
 
-**Source**: src/mcp/protocol.rs:336-343
+**Source**: src/mcp/protocol.rs:371-378
 ```rust
 /// Handle unknown method request
 pub fn handle_unknown_method(request: McpRequest) -> McpResponse {

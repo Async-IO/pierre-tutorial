@@ -7,7 +7,7 @@ Quick reference mapping natural language prompts to Pierre MCP tools.
 
 ## Supported Providers
 
-Pierre supports 5 fitness providers: `strava`, `garmin`, `fitbit`, `whoop`, `terra`
+Pierre supports 6 fitness providers: `strava`, `garmin`, `fitbit`, `whoop`, `terra`, `coros`
 
 All provider-specific tools accept any of these providers in the `provider` parameter.
 
@@ -86,6 +86,31 @@ All provider-specific tools accept any of these providers in the `provider` para
 | "Calculate my heart rate zones" | `calculate_personalized_zones` | User profile |
 | "Show my configuration" | `get_user_configuration` | None |
 | "What configuration profiles exist?" | `get_configuration_catalog` | None |
+| "Set my fitness config" | `set_fitness_config` | Config key + value |
+| "Show my fitness settings" | `get_fitness_config` | Config key |
+
+## Recipe Management ("Combat des Chefs")
+
+Pierre includes a training-aware recipe management system that aligns meal planning with training phases.
+
+| User says... | Tool | Parameters |
+|--------------|------|------------|
+| "What macros should I target for lunch?" | `get_recipe_constraints` | `{"meal_timing": "pre_training"}` |
+| "Validate this chicken recipe" | `validate_recipe` | Recipe with ingredients array |
+| "Save this recipe to my collection" | `save_recipe` | Validated recipe data |
+| "Show my saved recipes" | `list_recipes` | `{"meal_timing": "post_training"}` |
+| "Get recipe details for ID 123" | `get_recipe` | `{"recipe_id": "123"}` |
+| "Delete this recipe" | `delete_recipe` | `{"recipe_id": "123"}` |
+| "Search for pasta recipes" | `search_recipes` | `{"query": "pasta", "meal_timing": "pre_training"}` |
+
+**Recipe Workflow Pattern**:
+```
+1. get_recipe_constraints → Get macro targets for training phase
+2. LLM generates recipe matching constraints
+3. validate_recipe → Check nutrition against USDA database
+4. save_recipe → Store validated recipe
+5. list_recipes/search_recipes → Browse collection
+```
 
 ## Prompt Patterns
 

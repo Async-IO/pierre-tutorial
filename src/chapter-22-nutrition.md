@@ -412,6 +412,29 @@ Pierre automatically converts common units to grams for accurate nutrition looku
 
 12. **Meal timing macros**: Pre-training (high carb), post-training (high protein), rest day (balanced).
 
+## Detailed Methodology Reference
+
+For comprehensive technical documentation of all nutrition algorithms and USDA integration, see the **Nutrition Methodology Document** in the Pierre source repository:
+
+**[docs/nutrition-methodology.md](https://github.com/Async-IO/pierre_mcp_server/blob/main/docs/nutrition-methodology.md)**
+
+This detailed reference document covers:
+
+| Topic | Description |
+|-------|-------------|
+| **BMR Calculation** | Mifflin-St Jeor equation with step-by-step derivation |
+| **TDEE Calculation** | Activity multipliers, TEF, exercise adjustments |
+| **Macro Ratios** | Sport-specific protein/carb/fat recommendations |
+| **USDA Integration** | FoodData Central API, search patterns, caching |
+| **Portion Estimation** | Unit conversion tables, ingredient density |
+| **Meal Analysis** | Aggregation algorithms, nutrient completeness |
+| **Timing Windows** | Pre/during/post exercise optimization |
+| **Hydration** | Sweat rate calculation, electrolyte needs |
+| **Recipe Validation** | Compliance scoring, macro target matching |
+| **Edge Cases** | Missing nutrients, unknown foods, fallbacks |
+
+> **For implementers**: The methodology document includes complete formulas, USDA API examples, and validation rules for every nutrition tool in Pierre.
+
 ---
 
 **End of Part VI: Tools & Intelligence**

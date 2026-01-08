@@ -270,6 +270,24 @@ pub enum Vo2maxAlgorithm {
         heart_rate: f64,
         power_watts: f64,
     },
+
+    /// Speed-based VO2max estimation from race performance
+    ///
+    /// Formula: `VO2max = 15.3 × (MaxSpeed / RecoverySpeed)`
+    ///
+    /// Uses maximum sustainable speed vs recovery speed ratio.
+    FromPace {
+        /// Maximum speed in m/s during test
+        max_speed_ms: f64,
+        /// Recovery speed in m/s
+        recovery_speed_ms: f64,
+    },
+
+    /// Hybrid: Auto-select best method based on available data
+    ///
+    /// Attempts to use the most appropriate algorithm given available
+    /// test parameters. Returns error if insufficient data provided.
+    Hybrid,
 }
 ```
 
@@ -357,6 +375,31 @@ Pierre includes scientific references for algorithms:
 9. **Documentation in code**: Variant doc comments explain formulas, pros/cons, scientific basis.
 
 10. **Serde support**: All algorithms serialize/deserialize for configuration persistence.
+
+## Detailed Methodology Reference
+
+For comprehensive technical documentation of all sports science algorithms, see the **Intelligence Methodology Document** in the Pierre source repository:
+
+**[docs/intelligence-methodology.md](https://github.com/Async-IO/pierre_mcp_server/blob/main/docs/intelligence-methodology.md)**
+
+This 100+ section reference document covers:
+
+| Topic | Description |
+|-------|-------------|
+| **Architecture Overview** | Foundation modules, core modules, 47 intelligence tools |
+| **Data Sources** | Primary data, user profiles, provider normalization |
+| **Personalization Engine** | Age-based MaxHR, HR zones, power zones |
+| **Core Metrics** | Pace/speed conversion, TSS variants, Normalized Power |
+| **Training Load** | CTL/ATL/TSB mathematical formulation with EMA |
+| **Overtraining Detection** | Risk indicators and warning thresholds |
+| **VDOT Performance** | Daniels tables, race prediction, accuracy verification |
+| **Pattern Recognition** | Weekly schedules, hard/easy alternation, volume progression |
+| **Sleep & Recovery** | Sleep quality scoring, recovery score calculation |
+| **Validation & Safety** | Parameter bounds, confidence levels, edge cases |
+| **Configuration Strategies** | Conservative, default, aggressive profiles |
+| **Debugging Guide** | Metric-specific troubleshooting, platform issues |
+
+> **For implementers**: The methodology document includes complete formulas, code examples, and scientific references for every algorithm in the Pierre intelligence engine.
 
 ---
 

@@ -355,7 +355,7 @@ A2A supports API key authentication with rate limiting:
 /// - The API key format is invalid
 /// - Authentication fails
 /// - Rate limits are exceeded
-pub async fn authenticate_api_key(&self, api_key: &str) -> Result<AuthResult, anyhow::Error> {
+pub async fn authenticate_api_key(&self, api_key: &str) -> AppResult<AuthResult> {
     // Check if it's an A2A-specific API key (with a2a_ prefix)
     if api_key.starts_with("a2a_") {
         return self.authenticate_a2a_key(api_key).await;
@@ -373,7 +373,7 @@ pub async fn authenticate_api_key(&self, api_key: &str) -> Result<AuthResult, an
 **Source**: src/a2a/auth.rs:116-181
 ```rust
 /// Authenticate A2A-specific API key with rate limiting
-async fn authenticate_a2a_key(&self, api_key: &str) -> Result<AuthResult, anyhow::Error> {
+async fn authenticate_a2a_key(&self, api_key: &str) -> AppResult<AuthResult> {
     // Extract key components (similar to API key validation)
     if !api_key.starts_with("a2a_") || api_key.len() < 16 {
         return Err(AppError::auth_invalid("Invalid A2A API key format").into());

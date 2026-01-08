@@ -19,6 +19,40 @@ let data = fetch_data()?; // Returns early if error
 pub struct DbError(String);
 ```
 
+### Structured Error Types (REQUIRED)
+
+**CRITICAL**: Pierre prohibits `anyhow::anyhow!()` macro in all production code. All errors MUST use structured error types.
+
+**Correct patterns**:
+```rust
+// GOOD: Using structured error types
+return Err(AppError::not_found(format!("User {user_id}")));
+return Err(DatabaseError::ConnectionFailed { source: e.to_string() }.into());
+
+// GOOD: Mapping external errors to structured types
+external_lib_call().map_err(|e| AppError::internal(format!("API failed: {e}")))?;
+
+// GOOD: Adding context to structured errors
+database_operation().context("Failed to fetch user profile")?;
+```
+
+**Prohibited patterns (ZERO TOLERANCE)**:
+```rust
+// ❌ FORBIDDEN: Using anyhow::anyhow!()
+return Err(anyhow::anyhow!("User not found"));
+
+// ❌ FORBIDDEN: In map_err closures
+.map_err(|e| anyhow!("Failed: {e}"))?;
+
+// ❌ FORBIDDEN: In ok_or_else
+.ok_or_else(|| anyhow!("Not found"))?;
+```
+
+**Why structured errors?**
+- Enable type-safe error handling and proper HTTP status code mapping
+- Support better error messages, logging, and debugging
+- Make error handling testable and maintainable
+
 ## Option and Result Patterns
 
 **`Option::is_some_and`**: Check Some and condition in one call.
@@ -84,11 +118,32 @@ use zeroize::Zeroize;
 secret.zeroize(); // Overwrite with zeros
 ```
 
-**`OnceLock`**: Thread-safe lazy static initialization.
+**`LazyLock`**: Thread-safe lazy static initialization (Rust 1.80+, preferred).
 ```rust
-static CONFIG: OnceLock<Config> = OnceLock::new();
-CONFIG.get_or_init(|| Config::load());
+use std::sync::LazyLock;
+
+// Initialization function runs once on first access
+static CONFIG: LazyLock<Config> = LazyLock::new(|| Config::load());
+
+// Usage - always initialized
+let cfg = &*CONFIG; // Deref to get &Config
 ```
+
+**`OnceLock`**: Thread-safe one-time initialization with runtime values.
+```rust
+use std::sync::OnceLock;
+
+// When you need to set the value dynamically at runtime
+static RUNTIME_CONFIG: OnceLock<Config> = OnceLock::new();
+
+fn initialize(config: Config) {
+    RUNTIME_CONFIG.get_or_init(|| config);
+}
+```
+
+**When to use which**:
+- `LazyLock`: Initialization is known at compile time (replaces `lazy_static!`)
+- `OnceLock`: Initialization depends on runtime values or must be deferred
 
 ## Memory Allocation Guidance
 
@@ -224,7 +279,9 @@ let activities_ref = activities.clone(); // Cheap
 ## Key Takeaways
 
 1. **Error propagation**: Use `?` operator for clean error handling.
-2. **Trait objects**: `Arc<dyn Trait>` for shared polymorphism.
-3. **Async traits**: `#[async_trait]` macro enables async methods in traits.
-4. **Type safety**: Enums and `#[must_use]` prevent common mistakes.
-5. **Secure memory**: `zeroize` crate for cryptographic key cleanup.
+2. **Structured errors**: `anyhow!()` is forbidden in production code. Use `AppError`, `DatabaseError`, `ProviderError` enums.
+3. **Trait objects**: `Arc<dyn Trait>` for shared polymorphism.
+4. **Async traits**: `#[async_trait]` macro enables async methods in traits.
+5. **Type safety**: Enums and `#[must_use]` prevent common mistakes.
+6. **Secure memory**: `zeroize` crate for cryptographic key cleanup.
+7. **Lazy statics**: Use `std::sync::LazyLock` (Rust 1.80+) for compile-time-known lazy initialization, `OnceLock` for runtime values.

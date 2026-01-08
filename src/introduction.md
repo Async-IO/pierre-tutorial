@@ -48,14 +48,15 @@ Pierre is a fitness intelligence platform that provides:
 - **47 MCP tools** for fitness data analysis
 - **Multi-tenant SaaS architecture** with complete data isolation
 - **OAuth 2.0 server** for MCP client authentication
-- **Pluggable provider system** supporting Strava, Garmin, Fitbit, Whoop, and Terra
+- **Pluggable provider system** supporting Strava, Garmin, Fitbit, WHOOP, COROS, and Terra
 - **Sports science algorithms** for training load, performance, and recovery analysis
+- **Local LLM support** via OpenAI-compatible APIs (Ollama, vLLM, LocalAI)
 
 The codebase demonstrates production-grade Rust patterns:
-- Zero `unsafe` code policy
+- Zero `unsafe` code policy (with one approved FFI exception)
 - Structured error handling (no `anyhow!` in production)
-- Comprehensive test coverage
-- ~300 source files in a well-organized module hierarchy
+- Comprehensive test coverage (~650 tests)
+- ~330 source files in a well-organized module hierarchy
 
 ## Getting Started
 

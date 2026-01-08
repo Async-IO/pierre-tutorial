@@ -52,6 +52,8 @@
 - [SDK CLI Usage](./chapter-29-sdk-cli-usage.md)
 - [Performance](./chapter-30-performance.md)
 - [Adding New Tools](./chapter-31-adding-new-tools.md)
+- [SDK Development](./chapter-32-sdk-development.md)
+- [Frontend Development](./chapter-33-frontend-development.md)
 
 # Appendices
 

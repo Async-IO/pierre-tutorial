@@ -7,10 +7,11 @@ This appendix provides a comprehensive reference of all error codes, their HTTP 
 
 ## Error Code Categories
 
-Pierre uses three primary error enums:
+Pierre uses four primary error enums:
 - `ErrorCode` - Application-level error codes with HTTP mapping
 - `DatabaseError` - Database operation errors
 - `ProviderError` - Fitness provider API errors
+- `ProtocolError` - Protocol operation errors (MCP/A2A)
 
 ## ErrorCode → HTTP Status Mapping
 
@@ -112,6 +113,65 @@ Pierre uses three primary error enums:
 | `NetworkError` | `provider`, `message` | Retry with backoff |
 | `Timeout` | `provider`, `timeout_secs` | Increase timeout or retry |
 | `NotSupported` | `provider`, `feature` | Feature unavailable |
+
+## ProtocolError Variants
+
+**Source**: `src/protocols/mod.rs:35-211`
+
+Protocol errors for MCP and A2A protocol operations:
+
+### Tool Errors
+
+| Variant | Context Fields | Typical Cause |
+|---------|---------------|---------------|
+| `ToolNotFound` | `tool_id`, `available_count` | Tool ID doesn't exist |
+| `InvalidParameter` | `tool_id`, `parameter`, `reason` | Parameter validation failed |
+| `MissingParameter` | `tool_id`, `parameter` | Required parameter not provided |
+| `InvalidParameters` | message | General parameter error |
+| `ExecutionFailed` | message | Tool execution error |
+| `ExecutionFailedDetailed` | `tool_id`, `source` | Tool execution with source error |
+
+### Protocol Errors
+
+| Variant | Context Fields | Typical Cause |
+|---------|---------------|---------------|
+| `UnsupportedProtocol` | `protocol` | Protocol type not supported |
+| `InvalidRequest` | message | Malformed request |
+| `InvalidRequestDetailed` | `protocol`, `reason` | Request validation failure |
+| `ConversionFailed` | `from`, `to`, `reason` | Protocol format conversion error |
+
+### Configuration Errors
+
+| Variant | Context Fields | Typical Cause |
+|---------|---------------|---------------|
+| `ConfigMissing` | `key` | Required config not set |
+| `ConfigurationError` | message | General config error |
+| `ConfigurationErrorDetailed` | `message` | Config error with details |
+
+### Plugin Errors
+
+| Variant | Context Fields | Typical Cause |
+|---------|---------------|---------------|
+| `PluginNotFound` | `plugin_id` | Plugin ID doesn't exist |
+| `PluginError` | `plugin_id`, `details` | Plugin execution failed |
+
+### Access Control Errors
+
+| Variant | Context Fields | Typical Cause |
+|---------|---------------|---------------|
+| `InsufficientSubscription` | `required`, `current` | User tier too low |
+| `RateLimitExceeded` | `requests`, `window_secs` | Too many requests |
+
+### Other Errors
+
+| Variant | Context Fields | Typical Cause |
+|---------|---------------|---------------|
+| `Serialization` | `context`, `source` | JSON serialization failed |
+| `SerializationError` | message | Simple serialization error |
+| `Database` | `source` | Database operation failed |
+| `InvalidSchema` | `entity`, `reason` | Schema validation error |
+| `InternalError` | message | Unexpected server error |
+| `OperationCancelled` | message | User cancelled operation |
 
 ## JSON Error Response Format
 

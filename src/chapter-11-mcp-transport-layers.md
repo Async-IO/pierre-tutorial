@@ -8,7 +8,7 @@ This chapter explores how the Pierre Fitness Platform supports multiple transpor
 ## What You'll Learn
 
 - Transport layer abstraction for MCP protocol
-- stdio transport for command-line clients
+- Stdio transport for direct MCP communication
 - HTTP transport for web clients and APIs
 - Server-Sent Events (SSE) for notifications
 - WebSocket transport for bidirectional communication
@@ -27,16 +27,16 @@ MCP is transport-agnostic - the same JSON-RPC messages work over any transport:
 │         (JSON-RPC requests/responses)                    │
 └─────────────────┬────────────────────────────────────────┘
                   │
-      ┌───────────┴───────────┬───────────┬────────────┐
-      │                       │           │            │
-      ▼                       ▼           ▼            ▼
-┌──────────┐          ┌──────────┐  ┌────────┐  ┌────────┐
-│  stdio   │          │   HTTP   │  │  SSE   │  │  WS    │
-│  (CLI)   │          │  (Web)   │  │(Notify)│  │(Bidir) │
-└──────────┘          └──────────┘  └────────┘  └────────┘
+      ┌───────────┼───────────┬────────────┬────────────┐
+      │           │           │            │            │
+      ▼           ▼           ▼            ▼            ▼
+┌──────────┐ ┌────────┐ ┌────────┐   ┌────────┐   ┌────────┐
+│  stdio   │ │  HTTP  │ │  SSE   │   │  WS    │   │Sampling│
+│ (Direct) │ │ (API)  │ │(Notify)│   │(Bidir) │   │ (LLM)  │
+└──────────┘ └────────┘ └────────┘   └────────┘   └────────┘
 ```
 
-**Source**: src/mcp/transport_manager.rs:18-34
+**Source**: src/mcp/transport_manager.rs:24-39
 ```rust
 /// Manages multiple transport methods for MCP communication
 pub struct TransportManager {
@@ -58,122 +58,35 @@ impl TransportManager {
 
 **Design**: Single `TransportManager` coordinates all transports using `broadcast::channel` for notifications.
 
-## Stdio Transport
-
-The stdio transport reads JSON-RPC from stdin and writes to stdout:
-
-**Source**: src/mcp/transport_manager.rs:116-180
-```rust
-/// Handles stdio transport for MCP communication
-pub struct StdioTransport {
-    resources: Arc<ServerResources>,
-}
-
-impl StdioTransport {
-    /// Creates a new stdio transport instance
-    #[must_use]
-    pub const fn new(resources: Arc<ServerResources>) -> Self {
-        Self { resources }
-    }
-
-    /// Run stdio transport for MCP communication
-    ///
-    /// # Errors
-    /// Returns an error if stdio processing fails
-    pub async fn run(
-        &self,
-        notification_receiver: broadcast::Receiver<OAuthCompletedNotification>,
-    ) -> Result<()> {
-        use tokio::io::{AsyncBufReadExt, BufReader};
-
-        info!("MCP stdio transport ready - listening on stdin/stdout");
-
-        let stdin = tokio::io::stdin();
-        let mut lines = BufReader::new(stdin).lines();
-
-        // Spawn notification handler for stdio transport
-        let resources_for_notifications = self.resources.clone();
-        let notification_handle = tokio::spawn(async move {
-            Self::handle_stdio_notifications(notification_receiver, resources_for_notifications)
-                .await
-        });
-
-        // Main stdio loop
-        while let Some(line) = lines.next_line().await? {
-            if line.trim().is_empty() {
-                continue;
-            }
-
-            match Self::process_stdio_line(&line) {
-                Ok(response) => {
-                    if let Some(resp) = response {
-                        println!("{resp}");
-                    }
-                }
-                Err(e) => {
-                    warn!("Error processing stdio input: {}", e);
-                    let error_response = serde_json::json!({
-                        "jsonrpc": "2.0",
-                        "error": {
-                            "code": -32603,
-                            "message": "Internal error"
-                        },
-                        "id": null
-                    });
-                    println!("{error_response}");
-                }
-            }
-        }
-
-        // Clean up notification handler
-        notification_handle.abort();
-        Ok(())
-    }
-```
-
-**stdio protocol**:
-- **Input**: Read lines from stdin (`tokio::io::stdin()`)
-- **Parse**: Deserialize JSON-RPC from line
-- **Process**: Route through `McpRequestProcessor`
-- **Output**: Write JSON response to stdout (`println!`)
-
-**Use cases**:
-- Claude Desktop MCP integration
-- Command-line tools
-- Process spawning (subprocess communication)
-- Testing and debugging
-
-**Rust Idiom**: `AsyncBufReadExt` for line-based I/O
-
-The `BufReader::new(stdin).lines()` pattern provides async line iteration. Each `next_line()` call waits for a complete line (terminated by `\n`), which matches JSON-RPC line-delimited protocol.
-
 ## HTTP Transport
 
 HTTP transport serves MCP over REST endpoints:
 
-**Source**: src/mcp/transport_manager.rs:89-112
+**Source**: src/mcp/transport_manager.rs:103-128
 ```rust
-// Run unified HTTP server with all routes (OAuth2, MCP, etc.) - this should run indefinitely
-loop {
-    info!("Starting unified Axum HTTP server on port {}", port);
+/// Run HTTP server with restart on failure
+async fn run_http_server_loop(shared_resources: Arc<ServerResources>, port: u16) -> ! {
+    loop {
+        info!("Starting unified Axum HTTP server on port {}", port);
 
-    // Clone shared resources for each iteration since run_http_server_with_resources takes ownership
-    let server = super::multitenant::MultiTenantMcpServer::new(shared_resources.clone());
+        let server = super::multitenant::MultiTenantMcpServer::new(shared_resources.clone());
+        let result = server
+            .run_http_server_with_resources_axum(port, shared_resources.clone())
+            .await;
 
-    let result = server
-        .run_http_server_with_resources_axum(port, shared_resources.clone())
-        .await;
+        Self::handle_server_restart(result).await;
+    }
+}
 
+async fn handle_server_restart(result: AppResult<()>) {
     match result {
         Ok(()) => {
-            error!("HTTP server unexpectedly completed - this should never happen");
-            error!("HTTP server should run indefinitely. Restarting in 5 seconds...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+            error!("HTTP server unexpectedly completed - restarting in 5 seconds...");
+            sleep(Duration::from_secs(5)).await;
         }
         Err(e) => {
-            error!("HTTP server failed: {}", e);
-            error!("Restarting HTTP server in 10 seconds...");
-            tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+            error!("HTTP server failed: {} - restarting in 10 seconds...", e);
+            sleep(Duration::from_secs(10)).await;
         }
     }
 }
@@ -196,20 +109,170 @@ GET  /oauth/authorize   - OAuth flow start
 POST /oauth/callback    - OAuth callback
 ```
 
+## Stdio Transport (Direct MCP)
+
+Pierre includes a native Rust stdio transport for direct MCP communication without HTTP overhead:
+
+**Source**: src/mcp/transport_manager.rs:155-165
+```rust
+/// Handles stdio transport for MCP communication
+pub struct StdioTransport {
+    resources: Arc<ServerResources>,
+}
+
+impl StdioTransport {
+    /// Creates a new stdio transport instance
+    #[must_use]
+    pub const fn new(resources: Arc<ServerResources>) -> Self {
+        Self { resources }
+    }
+```
+
+**Message processing loop**:
+
+**Source**: src/mcp/transport_manager.rs:245-291
+```rust
+/// Run stdio transport for MCP communication
+pub async fn run(
+    &self,
+    notification_receiver: broadcast::Receiver<OAuthCompletedNotification>,
+) -> AppResult<()> {
+    info!("MCP stdio transport ready - listening on stdin/stdout with sampling support");
+
+    let stdin_handle = stdin();
+    let mut lines = BufReader::new(stdin_handle).lines();
+    let sampling_peer = self.resources.sampling_peer.clone();
+
+    // Spawn notification handler
+    let notification_handle = tokio::spawn(async move {
+        Self::handle_stdio_notifications(notification_receiver, resources_for_notifications).await
+    });
+
+    while let Some(line) = lines.next_line().await? {
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        match serde_json::from_str::<serde_json::Value>(&line) {
+            Ok(message) => {
+                Self::process_stdio_message(
+                    message,
+                    self.resources.clone(),
+                    sampling_peer.as_ref(),
+                ).await;
+            }
+            Err(e) => {
+                warn!("Invalid JSON-RPC message: {}", e);
+                println!("{}", Self::parse_error_response());
+            }
+        }
+    }
+
+    // Cleanup on exit
+    if let Some(peer) = &sampling_peer {
+        peer.cancel_all_pending().await;
+    }
+    notification_handle.abort();
+    Ok(())
+}
+```
+
+**Stdio characteristics**:
+- **Bidirectional**: Full JSON-RPC over stdin/stdout
+- **Line-based**: One JSON message per line
+- **BufReader**: Efficient buffered reading
+- **MCP Sampling**: Supports server-initiated LLM requests
+- **Concurrent startup**: Runs alongside HTTP/SSE transports
+
+**MCP Sampling support**:
+
+The stdio transport includes special handling for MCP Sampling - a protocol feature allowing servers to request LLM completions from clients:
+
+**Source**: src/mcp/transport_manager.rs:167-200
+```rust
+/// Check if a JSON message is a sampling response
+fn is_sampling_response(message: &serde_json::Value) -> bool {
+    message.get("id").is_some()
+        && message.get("method").is_none()
+        && (message.get("result").is_some() || message.get("error").is_some())
+}
+
+/// Route a sampling response to the sampling peer
+async fn route_sampling_response(
+    message: &serde_json::Value,
+    sampling_peer: Option<&Arc<super::sampling_peer::SamplingPeer>>,
+) {
+    let Some(peer) = sampling_peer else {
+        warn!("Received sampling response but no sampling peer available");
+        return;
+    };
+
+    let id = message.get("id").cloned().unwrap_or(serde_json::Value::Null);
+    let result = message.get("result").cloned();
+    let error = message.get("error").cloned();
+
+    match peer.handle_response(id, result, error).await {
+        Ok(handled) if !handled => {
+            warn!("Received response for unknown sampling request");
+        }
+        Ok(_) => {}
+        Err(e) => warn!("Failed to handle sampling response: {}", e),
+    }
+}
+```
+
+**Transport startup**:
+
+**Source**: src/mcp/transport_manager.rs:70-85, 148
+```rust
+fn spawn_stdio_transport(
+    resources: Arc<ServerResources>,
+    notification_receiver: broadcast::Receiver<OAuthCompletedNotification>,
+) {
+    let stdio_handle = tokio::spawn(async move {
+        let stdio_transport = StdioTransport::new(resources);
+        match stdio_transport.run(notification_receiver).await {
+            Ok(()) => info!("stdio transport completed successfully"),
+            Err(e) => warn!("stdio transport failed: {}", e),
+        }
+    });
+    // Monitor task completion
+    tokio::spawn(async move {
+        match stdio_handle.await {
+            Ok(()) => info!("stdio transport task completed"),
+            Err(e) => warn!("stdio transport task failed: {}", e),
+        }
+    });
+}
+
+// Called from start_legacy_unified_server()
+Self::spawn_stdio_transport(shared_resources.clone(), notification_receiver);
+```
+
+**Use cases**:
+- Claude Desktop integration via MCP stdio protocol
+- Direct MCP client connections
+- Server-initiated LLM requests (MCP Sampling)
+- OAuth notifications to stdio clients
+
 ## Sse Transport (Notifications)
 
 Server-Sent Events provide server-to-client notifications:
 
-**Source**: src/mcp/transport_manager.rs:80-87
+**Source**: src/mcp/transport_manager.rs:90-101
 ```rust
-// Start SSE notification forwarder task
-let resources_for_sse = shared_resources.clone();
-tokio::spawn(async move {
-    let sse_forwarder = SseNotificationForwarder::new(resources_for_sse);
-    if let Err(e) = sse_forwarder.run(sse_notification_receiver).await {
-        error!("SSE notification forwarder failed: {}", e);
-    }
-});
+/// Spawn SSE notification forwarder task
+fn spawn_sse_forwarder(
+    resources: Arc<ServerResources>,
+    notification_receiver: broadcast::Receiver<OAuthCompletedNotification>,
+) {
+    tokio::spawn(async move {
+        let sse_forwarder = SseNotificationForwarder::new(resources);
+        if let Err(e) = sse_forwarder.run(notification_receiver).await {
+            error!("SSE notification forwarder failed: {}", e);
+        }
+    });
+}
 ```
 
 **SSE characteristics**:
@@ -234,7 +297,7 @@ data: {"jsonrpc":"2.0","method":"notifications/oauth_completed","params":{"provi
 
 WebSocket provides full-duplex bidirectional communication for real-time updates:
 
-**Source**: src/websocket.rs:84-124
+**Source**: src/websocket.rs:88-127
 ```rust
 /// Manages WebSocket connections and message broadcasting
 #[derive(Clone)]
@@ -251,11 +314,10 @@ impl WebSocketManager {
     pub fn new(
         database: Arc<Database>,
         auth_manager: &Arc<AuthManager>,
-        jwks_manager: &Arc<crate::admin::jwks::JwksManager>,
-        rate_limit_config: crate::config::environment::RateLimitConfig,
+        jwks_manager: &Arc<JwksManager>,
+        rate_limit_config: RateLimitConfig,
     ) -> Self {
-        let (broadcast_tx, _) =
-            broadcast::channel(crate::constants::rate_limits::WEBSOCKET_CHANNEL_CAPACITY);
+        let (broadcast_tx, _) = broadcast::channel(WEBSOCKET_CHANNEL_CAPACITY);
         let auth_middleware = McpAuthMiddleware::new(
             (**auth_manager).clone(),
             database.clone(),
@@ -274,9 +336,10 @@ impl WebSocketManager {
 
 **WebSocket message types**:
 
-**Source**: src/websocket.rs:32-82
+**Source**: src/websocket.rs:35-86
 ```rust
 /// WebSocket message types for real-time communication
+#[non_exhaustive]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum WebSocketMessage {
@@ -320,10 +383,10 @@ pub enum WebSocketMessage {
 
 **Connection handling**:
 
-**Source**: src/websocket.rs:203-266
+**Source**: src/websocket.rs:206-269
 ```rust
 /// Handle incoming WebSocket connection
-pub async fn handle_connection(&self, ws: axum::extract::ws::WebSocket) {
+pub async fn handle_connection(&self, ws: WebSocket) {
     let (mut ws_tx, mut ws_rx) = ws.split();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -391,7 +454,7 @@ pub async fn handle_connection(&self, ws: axum::extract::ws::WebSocket) {
 
 **Broadcasting updates**:
 
-**Source**: src/websocket.rs:281-299
+**Source**: src/websocket.rs:285-303
 ```rust
 /// Broadcast usage update to subscribed clients
 pub async fn broadcast_usage_update(
@@ -409,17 +472,18 @@ pub async fn broadcast_usage_update(
         rate_limit_status,
     };
 
-    self.send_to_user_subscribers(user_id, &message, "usage").await;
+    self.send_to_user_subscribers(user_id, &message, "usage")
+        .await;
 }
 ```
 
 **Periodic system stats**:
 
-**Source**: src/websocket.rs:384-399
+**Source**: src/websocket.rs:394-409
 ```rust
 /// Start background task for periodic updates
 pub fn start_periodic_updates(&self) {
-    let manager = self.clone();
+    let manager = self.clone(); // Safe: Arc clone for background task
     tokio::spawn(async move {
         let mut interval = interval(Duration::from_secs(30)); // Update every 30 seconds
 
@@ -428,7 +492,7 @@ pub fn start_periodic_updates(&self) {
 
             // Broadcast system stats
             if let Err(e) = manager.broadcast_system_stats().await {
-                tracing::warn!("Failed to broadcast system stats: {}", e);
+                warn!("Failed to broadcast system stats: {}", e);
             }
         }
     });
@@ -459,13 +523,13 @@ The `ws.split()` pattern separates the WebSocket into independent read and write
 
 The `TransportManager` starts all transports concurrently:
 
-**Source**: src/mcp/transport_manager.rs:39-78
+**Source**: src/mcp/transport_manager.rs:41-53, 130-152
 ```rust
-/// Start all transport methods (stdio, HTTP, SSE) in coordinated fashion
+/// Start all transport methods (HTTP, SSE, WebSocket) in coordinated fashion
 ///
 /// # Errors
 /// Returns an error if transport setup or server startup fails
-pub async fn start_all_transports(&self, port: u16) -> Result<()> {
+pub async fn start_all_transports(&self, port: u16) -> AppResult<()> {
     info!(
         "Transport manager coordinating all transports on port {}",
         port
@@ -476,48 +540,32 @@ pub async fn start_all_transports(&self, port: u16) -> Result<()> {
 }
 
 /// Unified server startup using existing transport coordination
-async fn start_legacy_unified_server(&self, port: u16) -> Result<()> {
-    info!("Starting MCP server with stdio and HTTP transports (Axum framework)");
+async fn start_legacy_unified_server(&self, port: u16) -> AppResult<()> {
+    info!("Starting MCP server with HTTP transports (Axum framework)");
 
-    // Use the notification sender from the struct instance
-    let notification_receiver = self.notification_sender.subscribe();
     let sse_notification_receiver = self.notification_sender.subscribe();
 
-    // Set up notification sender in resources for OAuth callbacks
-    let mut resources_clone = (*self.resources).clone(); // Safe: ServerResources clone for notification setup
-    resources_clone.set_oauth_notification_sender(self.notification_sender.clone()); // Safe: Sender clone for notification
+    let mut resources_clone = (*self.resources).clone();
+    resources_clone.set_oauth_notification_sender(self.notification_sender.clone());
+
+    Self::spawn_progress_handler(&mut resources_clone);
+
     let shared_resources = Arc::new(resources_clone);
 
-    // Start stdio transport in background
-    let resources_for_stdio = shared_resources.clone();
-    let stdio_handle = tokio::spawn(async move {
-        let stdio_transport = StdioTransport::new(resources_for_stdio);
-        match stdio_transport.run(notification_receiver).await {
-            Ok(()) => info!("stdio transport completed successfully"),
-            Err(e) => warn!("stdio transport failed: {}", e),
-        }
-    });
+    Self::spawn_sse_forwarder(shared_resources.clone(), sse_notification_receiver);
 
-    // Monitor stdio transport in background
-    tokio::spawn(async move {
-        match stdio_handle.await {
-            Ok(()) => info!("stdio transport task completed"),
-            Err(e) => warn!("stdio transport task failed: {}", e),
-        }
-    });
+    Self::run_http_server_loop(shared_resources, port).await
+}
 ```
 
-**Concurrency**: All transports run in separate `tokio::spawn` tasks, allowing simultaneous HTTP and stdio clients.
+**Concurrency**: Transports run in separate `tokio::spawn` tasks, allowing simultaneous HTTP, SSE, and WebSocket clients.
 
 ## Notification Broadcasting
 
-The `broadcast::channel` distributes notifications to all transports:
+The `broadcast::channel` distributes notifications to subscribed transports:
 
 ```rust
 let (notification_sender, _) = broadcast::channel(100);
-
-// Subscribe for stdio transport
-let notification_receiver = self.notification_sender.subscribe();
 
 // Subscribe for SSE transport
 let sse_notification_receiver = self.notification_sender.subscribe();
@@ -532,17 +580,17 @@ notification_sender.send(OAuthCompletedNotification {
 
 **Rust Idiom**: `broadcast::channel` for pub-sub
 
-The `broadcast::channel` allows multiple subscribers. When a notification is sent, all active subscribers receive it. This is perfect for distributing OAuth completion events to stdio and SSE transports simultaneously.
+The `broadcast::channel` allows multiple subscribers. When a notification is sent, all active subscribers receive it. This is perfect for distributing OAuth completion events to SSE and WebSocket transports simultaneously.
 
 ## Key Takeaways
 
 1. **Transport abstraction**: MCP protocol is transport-agnostic. Same JSON-RPC messages work over stdio, HTTP, SSE, and WebSocket.
 
-2. **stdio transport**: Line-delimited JSON-RPC over stdin/stdout for CLI tools and Claude Desktop integration.
+2. **Stdio transport**: Native Rust implementation using `BufReader` for stdin, supports MCP Sampling for server-initiated LLM requests, runs concurrently with HTTP/SSE.
 
 3. **HTTP transport**: REST endpoints with Axum framework for web clients, with CORS and rate limiting support.
 
-4. **SSE for notifications**: Server-Sent Events provide unidirectional server→client notifications for OAuth completion and progress updates.
+4. **SSE for notifications**: Server-Sent Events provide unidirectional server→client notifications for OAuth completion and progress updates. SSE routes are implemented in `src/sse/routes.rs`.
 
 5. **WebSocket transport**: Full-duplex bidirectional communication with JWT authentication, topic-based subscriptions, and real-time updates. Supports usage monitoring, system stats broadcasting every 30 seconds, and live data streaming.
 
@@ -552,17 +600,19 @@ The `broadcast::channel` allows multiple subscribers. When a notification is sen
 
 8. **Broadcast notifications**: `tokio::sync::broadcast` distributes notifications to all active transports simultaneously.
 
-9. **Concurrent transports**: All transports run in separate `tokio::spawn` tasks, allowing simultaneous stdio, HTTP, and WebSocket clients.
+9. **Concurrent transports**: All transports run in separate `tokio::spawn` tasks, allowing simultaneous stdio, HTTP, SSE, and WebSocket clients.
 
 10. **Shared resources**: `Arc<ServerResources>` provides thread-safe access to database, auth manager, and other services across transports.
 
-11. **Error isolation**: Each transport handles errors independently. stdio failure doesn't affect HTTP or WebSocket transports.
+11. **Error isolation**: Each transport handles errors independently. HTTP failure doesn't affect stdio, SSE, or WebSocket transports.
 
 12. **Auto-recovery**: HTTP transport restarts on failure with exponential backoff (5s, 10s).
 
 13. **Transport-agnostic processing**: `McpRequestProcessor` handles requests identically regardless of transport source.
 
 14. **WebSocket splitting**: `ws.split()` pattern separates read/write halves for concurrent bidirectional communication without conflicts.
+
+15. **MCP Sampling**: Stdio transport supports server-initiated LLM requests via `SamplingPeer`, enabling Pierre to request completions from connected MCP clients.
 
 ---
 

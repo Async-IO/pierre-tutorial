@@ -17,37 +17,59 @@ This chapter covers production deployment strategies, Clippy lint configuration 
 
 ## Clippy Configuration
 
-Pierre uses strict Clippy lints to maintain code quality.
+Pierre uses strict Clippy lints to maintain code quality with **zero tolerance** (deny level) for most warnings.
 
-**Source**: Cargo.toml:158-200 (lints section)
+**Source**: Cargo.toml (lints section)
 ```toml
-[lints.clippy]
-# Pedantic lints for high-quality code
-all = "warn"
-pedantic = "warn"
-nursery = "warn"
+[lints.rust]
+# STRICT UNSAFE CODE POLICY: Zero tolerance
+unsafe_code = "deny"
+missing_docs = "warn"
 
-# Specific denials for critical issues
+[lints.clippy]
+# Base configuration: Enable all clippy lint groups at DENY level
+# Priority -1 ensures these are applied first, then specific overrides below
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+nursery = { level = "deny", priority = -1 }
+
+# Critical Denials - Error Handling Anti-Patterns
 unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
-unimplemented = "deny"
-todo = "deny"
-unreachable = "deny"
 
-# Allow specific patterns used throughout codebase
-missing_errors_doc = "allow"
-missing_panics_doc = "allow"
-module_name_repetitions = "allow"
+# Allowed Exceptions (type casts with proper validation)
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+
+# Const fn suggestions - false positives with runtime methods
+missing_const_for_fn = "allow"
+
+# Structural patterns - validated separately
+struct_excessive_bools = "allow"
+too_many_lines = "allow"
+significant_drop_tightening = "allow"
+
+# Additional code quality lints
+clone_on_copy = "warn"
+redundant_clone = "warn"
 ```
 
+**Lint configuration syntax** (TOML inline tables):
+- `{ level = "deny", priority = -1 }` - Table syntax with priority ordering
+- Priority `-1` means these base rules apply first, allowing specific overrides
+- Simple values like `"deny"` or `"allow"` work for single-priority lints
+
 **Lint categories**:
-- **all**: Enable all Clippy lints
+- **all**: Enable all Clippy lints (deny level = build errors)
 - **pedantic**: Extra pedantic lints for code quality
 - **nursery**: Experimental lints being tested
-- **Denials**: `unwrap_used`, `panic`, `todo` cause build failures
+- **Denials**: `unwrap_used`, `panic` cause build failures
 
-**Why deny unwrap**: Prevents runtime panics in production. Use `?` operator or `unwrap_or` instead.
+**Why deny unwrap/expect**: Prevents runtime panics in production. Use `?` operator, `.unwrap_or()`, or proper error handling instead.
+
+**Why deny unsafe**: Pierre has a zero-unsafe policy with only one approved exception (`src/health.rs` for Windows FFI).
 
 ## Production Deployment
 

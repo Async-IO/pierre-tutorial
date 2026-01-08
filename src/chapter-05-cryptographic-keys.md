@@ -93,40 +93,53 @@ pub struct MasterEncryptionKey {
 
 ### Loading MEK from Environment
 
-**Source**: `src/key_management.rs:40-75`
+**Source**: `src/key_management.rs:45-85`
+
+> **Important**: The MEK is **required** in all environments. There is no auto-generation fallback. This ensures encrypted data remains accessible across server restarts.
 
 ```rust
 impl MasterEncryptionKey {
-    /// Load MEK from environment variable or generate for development
-    pub fn load_or_generate() -> Result<Self> {
-        // Try to load from environment first
-        if let Ok(encoded_key) = env::var("PIERRE_MASTER_ENCRYPTION_KEY") {
-            return Self::load_from_environment(&encoded_key);
-        }
-
-        // Development mode: generate and log warning
-        Ok(Self::generate_for_development())
+    /// Load MEK from environment variable (required)
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The `PIERRE_MASTER_ENCRYPTION_KEY` environment variable is not set
+    /// - The environment variable contains invalid base64 encoding
+    /// - The decoded key is not exactly 32 bytes
+    pub fn load_or_generate() -> AppResult<Self> {
+        env::var("PIERRE_MASTER_ENCRYPTION_KEY").map_or_else(
+            |_| {
+                Err(AppError::config(
+                    "PIERRE_MASTER_ENCRYPTION_KEY environment variable is required.\n\n\
+                     This key is used to encrypt sensitive data (OAuth tokens, admin secrets, etc.).\n\
+                     Without a persistent key, encrypted data becomes unreadable after server restart.\n\n\
+                     To generate a key, run:\n\
+                     \x20\x20openssl rand -base64 32\n\n\
+                     Then set it in your environment:\n\
+                     \x20\x20export PIERRE_MASTER_ENCRYPTION_KEY=\"<your-generated-key>\"\n\n\
+                     Or add it to your .env file.",
+                ))
+            },
+            |encoded_key| Self::load_from_environment(&encoded_key),
+        )
     }
 
-    fn load_from_environment(encoded_key: &str) -> Result<Self> {
+    fn load_from_environment(encoded_key: &str) -> AppResult<Self> {
         info!("Loading Master Encryption Key from environment variable");
+        let key_bytes = Base64Standard.decode(encoded_key).map_err(|e| {
+            AppError::config(format!(
+                "Invalid base64 encoding in PIERRE_MASTER_ENCRYPTION_KEY: {e}"
+            ))
+        })?;
 
-        // Decode base64
-        let key_bytes = base64::engine::general_purpose::STANDARD
-            .decode(encoded_key)
-            .map_err(|e| AppError::config(
-                format!("Invalid base64 encoding in PIERRE_MASTER_ENCRYPTION_KEY: {e}")
-            ))?;
-
-        // Validate length
         if key_bytes.len() != 32 {
             return Err(AppError::config(format!(
                 "Master encryption key must be exactly 32 bytes, got {} bytes",
                 key_bytes.len()
-            )).into());
+            )));
         }
 
-        // Copy into fixed-size array
         let mut key = [0u8; 32];
         key.copy_from_slice(&key_bytes);
         Ok(Self { key })
@@ -227,56 +240,59 @@ impl MasterEncryptionKey {
 
 **Reference**: [NIST AES-GCM Spec](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf)
 
-### Development Key Generation
+### MEK Setup for Development
 
-**Source**: `src/key_management.rs:77-122`
+Unlike some systems that auto-generate keys for development convenience, Pierre **requires** the MEK to be set explicitly. This is intentional—it prevents the common mistake of deploying to production without a persistent key.
 
-```rust
-fn generate_for_development() -> Self {
-    Self::log_development_warnings();
-    let key = crate::database::generate_encryption_key();
-    Self::log_generated_key(&key);
-    Self { key }
-}
+**Generating a MEK**:
 
-fn log_generated_key(key: &[u8; 32]) {
-    // Only log MEK in debug builds with explicit environment flag
-    #[cfg(debug_assertions)]
-    {
-        if std::env::var("PIERRE_LOG_MEK").unwrap_or_default() == "true" {
-            let encoded = base64::engine::general_purpose::STANDARD.encode(key);
-            warn!(
-                "Generated MEK (save for production): PIERRE_MASTER_ENCRYPTION_KEY={}",
-                encoded
-            );
-        } else {
-            warn!("Generated MEK - Set PIERRE_LOG_MEK=true to display");
-        }
-    }
+```bash
+# Generate a cryptographically secure 32-byte key
+openssl rand -base64 32
 
-    // In release builds, never log the key
-    #[cfg(not(debug_assertions))]
-    {
-        let _ = key; // Silence unused warning
-        warn!("Generated temporary MEK - Use env var for production");
-    }
-}
+# Example output: K7xL9mP2qR4vT6yZ8aB0cD2eF4gH6iJ8kL0mN2oP4qR=
 ```
 
-**Rust Idioms Explained**:
+**Setting the MEK**:
 
-1. **`#[cfg(debug_assertions)]`** - Conditional compilation
-   - Code only compiled in debug builds
-   - Production builds (release) exclude this code entirely
-   - Prevents accidental key logging in production
+```bash
+# Option 1: Environment variable
+export PIERRE_MASTER_ENCRYPTION_KEY="K7xL9mP2qR4vT6yZ8aB0cD2eF4gH6iJ8kL0mN2oP4qR="
 
-2. **`#[cfg(not(debug_assertions))]`** - Release builds
-   - Opposite of debug
-   - `let _ = key;` consumes variable (prevents unused warning)
+# Option 2: .env file (recommended for development)
+echo 'PIERRE_MASTER_ENCRYPTION_KEY="K7xL9mP2qR4vT6yZ8aB0cD2eF4gH6iJ8kL0mN2oP4qR="' >> .env
+```
 
-3. **Double protection**
-   - Debug build + `PIERRE_LOG_MEK=true` required
-   - Defense in depth: can't accidentally log keys
+**Why No Auto-Generation?**
+
+| Approach | Problem |
+|----------|---------|
+| Auto-generate MEK | Data becomes unreadable after restart (encrypted tokens, secrets lost) |
+| In-memory only | Same as above—no persistence across restarts |
+| Store generated key | Security risk—key in logs, filesystem |
+
+Pierre's approach ensures:
+1. **Explicit configuration** - You must consciously set the key
+2. **Persistence** - The same key works across restarts
+3. **No secrets in logs** - MEK is never logged or displayed
+4. **Clear errors** - Helpful message if MEK is missing
+
+**Error When MEK Not Set**:
+
+```
+Error: PIERRE_MASTER_ENCRYPTION_KEY environment variable is required.
+
+This key is used to encrypt sensitive data (OAuth tokens, admin secrets, etc.).
+Without a persistent key, encrypted data becomes unreadable after server restart.
+
+To generate a key, run:
+  openssl rand -base64 32
+
+Then set it in your environment:
+  export PIERRE_MASTER_ENCRYPTION_KEY="<your-generated-key>"
+
+Or add it to your .env file.
+```
 
 ---
 

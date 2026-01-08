@@ -24,6 +24,57 @@ This chapter teaches you how to build configuration systems that are both flexib
 
 ---
 
+## Config Module Structure
+
+Pierre's configuration system is organized into specialized submodules for maintainability:
+
+```
+src/config/
+├── mod.rs                    # Module orchestrator with re-exports
+├── types.rs                  # Core types: LogLevel, Environment, LlmProviderType
+├── database.rs               # DatabaseUrl, PostgresPoolConfig, BackupConfig
+├── oauth.rs                  # OAuth provider configs, FirebaseConfig
+├── api_providers.rs          # Strava, Fitbit, Garmin API configs
+├── network.rs                # HTTP client, SSE, CORS, TLS settings
+├── cache.rs                  # Redis, rate limiting, TTL configs
+├── security.rs               # Authentication, headers, monitoring
+├── logging.rs                # PII redaction, log sampling
+├── mcp.rs                    # MCP protocol configuration
+├── fitness.rs                # Sport types, training zones
+├── environment.rs            # ServerConfig orchestrator
+├── intelligence/             # AI/ML configuration
+│   ├── algorithms.rs         # Algorithm selection (TSS, MaxHR, FTP, etc.)
+│   ├── activity.rs           # Activity analysis settings
+│   ├── goals.rs              # Goal management configuration
+│   ├── metrics.rs            # Metric thresholds and settings
+│   ├── nutrition.rs          # Nutrition analysis config
+│   ├── performance.rs        # Performance prediction settings
+│   ├── recommendation.rs     # Recommendation engine config
+│   ├── sleep_recovery.rs     # Sleep/recovery analysis settings
+│   └── weather.rs            # Weather integration config
+├── catalog.rs                # Parameter catalog and schemas
+├── profiles.rs               # User profile configs
+├── runtime.rs                # Session-scoped overrides
+├── validation.rs             # Config validation rules
+├── vo2_max.rs                # VO2max-based calculations
+├── admin/                    # Admin configuration management
+│   ├── manager.rs            # Runtime config manager
+│   ├── service.rs            # Config service layer
+│   └── types.rs              # Admin config types
+└── routes/                   # HTTP endpoints for config
+    ├── admin.rs              # Admin config endpoints
+    ├── configuration.rs      # Config API endpoints
+    └── fitness.rs            # Fitness config endpoints
+```
+
+**Key design principles**:
+- **Single responsibility**: Each module handles one configuration domain
+- **Re-exports**: `mod.rs` re-exports commonly used types for convenience
+- **Hierarchical organization**: Related configs grouped in submodules
+- **Separation of concerns**: Routes, types, and logic in separate files
+
+---
+
 ## Environment Variables with Dotenvy
 
 Pierre uses `dotenvy` to load environment variables from `.envrc` files in development.
@@ -95,7 +146,10 @@ Pierre uses enums to represent configuration values, gaining compile-time type s
 
 ### Loglevel Enum
 
-**Source**: `src/config/environment.rs:25-63`
+**Source**: `src/config/types.rs:11-64`
+
+> **Module Organization Note**: The config module was split into specialized submodules.
+> Core types like `LogLevel`, `Environment`, and `LlmProviderType` now live in `src/config/types.rs`.
 
 ```rust
 /// Strongly typed log level configuration
@@ -195,7 +249,7 @@ tracing_subscriber::fmt()
 
 ### Environment Enum (development vs Production)
 
-**Source**: `src/config/environment.rs:73-124`
+**Source**: `src/config/types.rs:66-112`
 
 ```rust
 /// Environment type for security and other configurations
@@ -277,7 +331,7 @@ if env.is_production() {
 
 Pierre uses an enum to represent different database types, avoiding string-based type checking.
 
-**Source**: `src/config/environment.rs:126-198`
+**Source**: `src/config/database.rs:14-80`
 
 ```rust
 /// Type-safe database configuration
@@ -395,7 +449,7 @@ match db_url {
 
 Pierre allows runtime selection of sports science algorithms via environment variables.
 
-**Source**: `src/config/intelligence_config.rs:75-133`
+**Source**: `src/config/intelligence/algorithms.rs:34-95`
 
 ```rust
 /// Algorithm Selection Configuration
