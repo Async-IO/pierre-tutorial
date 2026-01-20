@@ -1,389 +1,518 @@
 <!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 <!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
 
-# Chapter 31: Adding New MCP Tools - Complete Checklist
+# Chapter 31: Adding New MCP Tools - Pluggable Architecture
 
 ---
 
-This appendix provides a comprehensive checklist for adding new MCP tools to Pierre. Following this checklist ensures tools are properly integrated across all layers and tested.
+This appendix provides a comprehensive guide for adding new MCP tools to Pierre using the pluggable tool architecture. The new architecture simplifies tool creation to a 4-step process.
 
 ## Quick Reference Checklist
 
-Use this checklist when adding new tools:
-
 ```
-□ 1. Constants     - src/constants/tools/identifiers.rs
-□ 2. Schema        - src/mcp/schema.rs (import + create_*_tool fn + register)
-□ 3. ToolId Enum   - src/protocols/universal/tool_registry.rs (enum + from_name + name)
-□ 4. Handler       - src/protocols/universal/handlers/*.rs
-□ 5. Executor      - src/protocols/universal/executor.rs (import + register)
-□ 6. Tests         - tests/mcp_tools_unit.rs (presence + schema validation)
-□ 7. Tests         - tests/schema_completeness_test.rs (critical tools list)
-□ 8. SDK Tests     - sdk/test/integration/tool-call-validation.test.js
-□ 9. Docs          - docs/tools-reference.md
-□ 10. Tutorial     - docs/tutorial/chapter-19-tools-guide.md (update counts)
-□ 11. Clippy       - cargo clippy --all-targets (strict mode)
-□ 12. Run Tests    - cargo test (targeted tests for new tools)
+□ 1. Implement McpTool  - src/tools/implementations/<category>.rs
+□ 2. Create factory     - create_<category>_tools() function
+□ 3. Register in mod.rs - src/tools/implementations/mod.rs
+□ 4. Add feature flag   - Cargo.toml (if new category)
 ```
 
-## Step-by-Step Guide
+## Architecture Overview
 
-### Step 1: Add Tool Identifier Constant
+Pierre's pluggable tool architecture centers on three core components:
 
-**File**: `src/constants/tools/identifiers.rs`
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  Tool Creation Flow                          │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. Implement McpTool trait                                  │
+│     └─► src/tools/implementations/<category>.rs              │
+│                                                              │
+│  2. Create factory function                                  │
+│     └─► pub fn create_<category>_tools() -> Vec<Box<...>>   │
+│                                                              │
+│  3. Export from mod.rs                                       │
+│     └─► #[cfg(feature = "tools-<category>")]                │
+│         pub mod <category>;                                  │
+│                                                              │
+│  4. Register in ToolRegistry                                 │
+│     └─► Automatic via register_builtin_tools()              │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
 
-Add a constant for your tool name:
+## Step 1: Implement the McpTool Trait
+
+Create a new struct implementing the `McpTool` trait in the appropriate category file.
+
+**File**: `src/tools/implementations/<category>.rs`
 
 ```rust
-/// Recipe management tools (Combat des Chefs)
-pub const GET_RECIPE_CONSTRAINTS: &str = "get_recipe_constraints";
-pub const LIST_RECIPES: &str = "list_recipes";
-pub const GET_RECIPE: &str = "get_recipe";
-// ... add your tool constant here
-```
+use crate::tools::traits::{McpTool, ToolCapabilities, ToolExecutionContext, ToolResult};
+use crate::mcp::schema::{JsonSchema, PropertySchema};
+use crate::error::AppResult;
+use serde_json::Value;
+use std::collections::HashMap;
 
-**Why**: Eliminates hardcoded strings, enables compile-time checking.
+/// Tool to perform your new functionality
+pub struct YourNewTool;
 
-### Step 2: Create Tool Schema
+impl McpTool for YourNewTool {
+    fn name(&self) -> &'static str {
+        "your_new_tool"
+    }
 
-**File**: `src/mcp/schema.rs`
+    fn description(&self) -> &'static str {
+        "Clear description of what this tool does for AI assistants"
+    }
 
-#### 2a. Add import for your constant:
+    fn input_schema(&self) -> JsonSchema {
+        let mut properties = HashMap::new();
 
-```rust
-use crate::constants::tools::{
-    // ... existing imports ...
-    YOUR_NEW_TOOL,  // Add your constant
-};
-```
+        // Add required parameter
+        properties.insert(
+            "required_param".to_string(),
+            PropertySchema {
+                property_type: "string".to_string(),
+                description: Some("Description of required parameter".to_string()),
+            },
+        );
 
-#### 2b. Create schema function:
+        // Add optional parameter
+        properties.insert(
+            "optional_param".to_string(),
+            PropertySchema {
+                property_type: "number".to_string(),
+                description: Some("Optional limit (default: 10)".to_string()),
+            },
+        );
 
-```rust
-/// Create the `your_new_tool` tool schema
-fn create_your_new_tool_tool() -> ToolSchema {
-    let mut properties = HashMap::new();
-
-    // Add required parameters
-    properties.insert(
-        "param_name".to_owned(),
-        PropertySchema {
-            property_type: "string".into(),
-            description: Some("Description of parameter".into()),
-        },
-    );
-
-    // Add optional parameters
-    properties.insert(
-        "limit".to_owned(),
-        PropertySchema {
-            property_type: "number".into(),
-            description: Some("Maximum results (default: 10)".into()),
-        },
-    );
-
-    ToolSchema {
-        name: YOUR_NEW_TOOL.to_owned(),  // Use constant!
-        description: "Clear description of what the tool does".into(),
-        input_schema: JsonSchema {
-            schema_type: "object".into(),
+        JsonSchema {
+            schema_type: "object".to_string(),
             properties: Some(properties),
-            required: Some(vec!["param_name".to_owned()]),  // Required params
-        },
+            required: Some(vec!["required_param".to_string()]),
+        }
+    }
+
+    fn capabilities(&self) -> ToolCapabilities {
+        ToolCapabilities::REQUIRES_AUTH
+            | ToolCapabilities::READS_DATA
+    }
+
+    async fn execute(
+        &self,
+        args: Value,
+        context: &ToolExecutionContext,
+    ) -> AppResult<ToolResult> {
+        // Get authenticated user
+        let user_id = context.require_user()?;
+
+        // Extract parameters
+        let required_param = args
+            .get("required_param")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                crate::error::AppError::new(
+                    crate::error::ErrorCode::InvalidParams,
+                    "Missing required_param",
+                )
+            })?;
+
+        let optional_param = args
+            .get("optional_param")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(10);
+
+        // Execute business logic
+        let result = do_something(user_id, required_param, optional_param).await?;
+
+        // Return success response
+        Ok(ToolResult::success(serde_json::to_value(result)?))
     }
 }
 ```
 
-#### 2c. Register in `create_fitness_tools()`:
+### Capability Flags Reference
+
+Choose the appropriate capabilities for your tool:
+
+| Flag | Use When |
+|------|----------|
+| `REQUIRES_AUTH` | Tool needs authenticated user |
+| `REQUIRES_TENANT` | Tool needs tenant context |
+| `REQUIRES_PROVIDER` | Tool needs connected fitness provider |
+| `READS_DATA` | Tool reads data (enables caching) |
+| `WRITES_DATA` | Tool modifies data (invalidates cache) |
+| `ANALYTICS` | Tool performs calculations |
+| `GOALS` | Tool manages goals |
+| `CONFIGURATION` | Tool manages configuration |
+| `RECIPES` | Tool manages recipes |
+| `COACHES` | Tool manages coaches |
+| `ADMIN_ONLY` | Tool requires admin privileges |
+| `SLEEP_RECOVERY` | Tool handles sleep/recovery |
+
+**Combine flags with bitwise OR**:
+```rust
+ToolCapabilities::REQUIRES_AUTH | ToolCapabilities::WRITES_DATA | ToolCapabilities::COACHES
+```
+
+## Step 2: Create Factory Function
+
+Add your tool to the category's factory function.
+
+**File**: `src/tools/implementations/<category>.rs`
 
 ```rust
-fn create_fitness_tools() -> Vec<ToolSchema> {
+/// Create all <category> tools for registration
+pub fn create_<category>_tools() -> Vec<Box<dyn McpTool>> {
     vec![
-        // ... existing tools ...
-        create_your_new_tool_tool(),  // Add here
+        Box::new(ExistingTool),
+        Box::new(YourNewTool),  // Add your new tool here
     ]
 }
 ```
 
-### Step 3: Add to ToolId Enum
+### Creating a New Category
 
-**File**: `src/protocols/universal/tool_registry.rs`
+If adding a new tool category, create the full file:
 
-#### 3a. Add import:
-
-```rust
-use crate::constants::tools::{
-    // ... existing imports ...
-    YOUR_NEW_TOOL,
-};
-```
-
-#### 3b. Add enum variant:
+**File**: `src/tools/implementations/my_category.rs`
 
 ```rust
-pub enum ToolId {
-    // ... existing variants ...
-    /// Your tool description
-    YourNewTool,
+//! My Category Tools
+//!
+//! This module provides tools for my new functionality.
+
+use crate::tools::traits::{McpTool, ToolCapabilities, ToolExecutionContext, ToolResult};
+use crate::mcp::schema::{JsonSchema, PropertySchema};
+use crate::error::AppResult;
+use serde_json::Value;
+use std::collections::HashMap;
+
+// Tool implementations...
+
+pub struct FirstTool;
+impl McpTool for FirstTool { /* ... */ }
+
+pub struct SecondTool;
+impl McpTool for SecondTool { /* ... */ }
+
+/// Create all my_category tools for registration
+pub fn create_my_category_tools() -> Vec<Box<dyn McpTool>> {
+    vec![
+        Box::new(FirstTool),
+        Box::new(SecondTool),
+    ]
 }
 ```
 
-#### 3c. Add to `from_name()`:
+## Step 3: Register in mod.rs
+
+Export your module with a feature flag.
+
+**File**: `src/tools/implementations/mod.rs`
 
 ```rust
-pub fn from_name(name: &str) -> Option<Self> {
-    match name {
-        // ... existing matches ...
-        YOUR_NEW_TOOL => Some(Self::YourNewTool),
-        _ => None,
+// Existing modules...
+#[cfg(feature = "tools-connection")]
+pub mod connection;
+
+#[cfg(feature = "tools-data")]
+pub mod data;
+
+// Add your new category
+#[cfg(feature = "tools-my-category")]
+pub mod my_category;
+```
+
+## Step 4: Add Feature Flag (New Categories Only)
+
+For new categories, add the feature flag to Cargo.toml.
+
+**File**: `Cargo.toml`
+
+```toml
+[features]
+# Existing features...
+tools-connection = []
+tools-data = []
+
+# Add your new category
+tools-my-category = []
+
+# Update tools-all to include your category
+tools-all = [
+    "tools-connection",
+    "tools-data",
+    # ... existing categories ...
+    "tools-my-category",
+]
+```
+
+Then add registration in the registry:
+
+**File**: `src/tools/registry.rs`
+
+```rust
+impl ToolRegistry {
+    fn register_builtin_tools(&mut self) {
+        // Existing registrations...
+
+        #[cfg(feature = "tools-my-category")]
+        self.register_my_category_tools();
+    }
+
+    #[cfg(feature = "tools-my-category")]
+    fn register_my_category_tools(&mut self) {
+        use crate::tools::implementations::my_category::create_my_category_tools;
+        for tool in create_my_category_tools() {
+            self.register_with_category(std::sync::Arc::from(tool), "my-category");
+        }
     }
 }
 ```
 
-#### 3d. Add to `name()`:
+## Complete Example: Adding a Coach Tool
+
+Here's a complete example of adding a new coach tool:
+
+### Step 1: Implement the Tool
+
+**File**: `src/tools/implementations/coaches.rs`
 
 ```rust
-pub const fn name(&self) -> &'static str {
-    match self {
-        // ... existing matches ...
-        Self::YourNewTool => YOUR_NEW_TOOL,
+/// Tool to get coach recommendations based on user's goals
+pub struct RecommendCoachTool;
+
+impl McpTool for RecommendCoachTool {
+    fn name(&self) -> &'static str {
+        "recommend_coach"
     }
-}
-```
 
-#### 3e. Add to `description()`:
-
-```rust
-pub const fn description(&self) -> &'static str {
-    match self {
-        // ... existing matches ...
-        Self::YourNewTool => "Your tool description",
+    fn description(&self) -> &'static str {
+        "Get AI coach recommendations based on fitness goals and activity history"
     }
-}
-```
 
-### Step 4: Create Handler Function
+    fn input_schema(&self) -> JsonSchema {
+        let mut properties = HashMap::new();
 
-**File**: `src/protocols/universal/handlers/your_module.rs` (or existing file)
-
-```rust
-/// Handle `your_new_tool` - description of what it does
-///
-/// # Arguments
-/// * `executor` - Universal executor with database and auth context
-/// * `request` - MCP request containing tool parameters
-///
-/// # Returns
-/// JSON response with tool results or error
-pub async fn handle_your_new_tool(
-    executor: Arc<UniversalExecutor>,
-    request: UniversalRequest,
-) -> UniversalResponse {
-    // Extract parameters
-    let params = match request.params.as_ref() {
-        Some(p) => p,
-        None => return error_response(-32602, "Missing parameters"),
-    };
-
-    // Parse required parameters
-    let param_name = match params.get("param_name").and_then(|v| v.as_str()) {
-        Some(p) => p,
-        None => return error_response(-32602, "Missing required parameter: param_name"),
-    };
-
-    // Get user context
-    let user_id = match executor.user_id() {
-        Some(id) => id,
-        None => return error_response(-32603, "Authentication required"),
-    };
-
-    // Execute business logic
-    match do_something(user_id, param_name).await {
-        Ok(result) => success_response(result),
-        Err(e) => error_response(-32603, &e.to_string()),
-    }
-}
-```
-
-### Step 5: Register in Executor
-
-**File**: `src/protocols/universal/executor.rs`
-
-#### 5a. Add import:
-
-```rust
-use crate::protocols::universal::handlers::your_module::handle_your_new_tool;
-```
-
-#### 5b. Register handler:
-
-```rust
-impl UniversalExecutor {
-    fn register_tools(&mut self) {
-        // ... existing registrations ...
-
-        self.register_handler(
-            ToolId::YourNewTool,
-            |executor, request| Box::pin(handle_your_new_tool(executor, request)),
+        properties.insert(
+            "goal_type".to_string(),
+            PropertySchema {
+                property_type: "string".to_string(),
+                description: Some(
+                    "Type of goal: marathon, weight_loss, strength, recovery".to_string()
+                ),
+            },
         );
+
+        properties.insert(
+            "experience_level".to_string(),
+            PropertySchema {
+                property_type: "string".to_string(),
+                description: Some("User experience: beginner, intermediate, advanced".to_string()),
+            },
+        );
+
+        JsonSchema {
+            schema_type: "object".to_string(),
+            properties: Some(properties),
+            required: Some(vec!["goal_type".to_string()]),
+        }
+    }
+
+    fn capabilities(&self) -> ToolCapabilities {
+        ToolCapabilities::REQUIRES_AUTH
+            | ToolCapabilities::COACHES
+            | ToolCapabilities::READS_DATA
+    }
+
+    async fn execute(
+        &self,
+        args: Value,
+        context: &ToolExecutionContext,
+    ) -> AppResult<ToolResult> {
+        let user_id = context.require_user()?;
+
+        let goal_type = args
+            .get("goal_type")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                AppError::new(ErrorCode::InvalidParams, "Missing goal_type")
+            })?;
+
+        let experience = args
+            .get("experience_level")
+            .and_then(|v| v.as_str())
+            .unwrap_or("intermediate");
+
+        let manager = CoachesManager::new(context.db_pool.clone());
+        let recommendations = manager
+            .recommend_for_goal(user_id, goal_type, experience)
+            .await?;
+
+        Ok(ToolResult::success(serde_json::to_value(recommendations)?))
     }
 }
 ```
 
-### Step 6: Add Unit Tests
-
-**File**: `tests/mcp_tools_unit.rs`
-
-#### 6a. Add to presence test:
+### Step 2: Add to Factory Function
 
 ```rust
-#[test]
-fn test_mcp_tool_schemas() {
-    let tools = get_tools();
-    let tool_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
-
-    // ... existing assertions ...
-
-    // Your new tools
-    assert!(tool_names.contains(&"your_new_tool"));
-}
-```
-
-#### 6b. Add schema validation test:
-
-```rust
-#[test]
-fn test_your_new_tool_schema() {
-    let tools = get_tools();
-
-    let tool = tools
-        .iter()
-        .find(|t| t.name == "your_new_tool")
-        .expect("your_new_tool tool should exist");
-
-    assert!(tool.description.contains("expected keyword"));
-
-    if let Some(required) = &tool.input_schema.required {
-        assert!(required.contains(&"param_name".to_owned()));
-    } else {
-        panic!("your_new_tool should have required parameters");
-    }
-}
-```
-
-### Step 7: Add to Critical Tools List
-
-**File**: `tests/schema_completeness_test.rs`
-
-```rust
-#[test]
-fn test_critical_tools_are_present() {
-    let critical_tools = vec![
+pub fn create_coach_tools() -> Vec<Box<dyn McpTool>> {
+    vec![
+        Box::new(ListCoachesTool),
+        Box::new(CreateCoachTool),
+        Box::new(GetCoachTool),
         // ... existing tools ...
-        "your_new_tool",
-    ];
-    // ...
+        Box::new(RecommendCoachTool),  // Add new tool
+    ]
 }
 ```
 
-### Step 8: Add SDK Tests
+### Step 3: Verify Registration
 
-**File**: `sdk/test/integration/tool-call-validation.test.js`
+Since coaches is an existing category, no changes needed to mod.rs or Cargo.toml.
 
-```javascript
-const toolCallTests = [
-    // ... existing tests ...
-    {
-        name: 'your_new_tool',
-        description: 'Your tool description',
-        arguments: { param_name: 'test-value' },
-        expectedError: null  // or /expected error pattern/
-    },
-];
+## Testing Your New Tool
+
+### Unit Test
+
+**File**: `tests/tool_tests.rs`
+
+```rust
+#[tokio::test]
+async fn test_recommend_coach_tool() {
+    let tool = RecommendCoachTool;
+
+    // Verify metadata
+    assert_eq!(tool.name(), "recommend_coach");
+    assert!(tool.description().contains("recommendations"));
+
+    // Verify capabilities
+    let caps = tool.capabilities();
+    assert!(caps.requires_auth());
+    assert!(caps.contains(ToolCapabilities::COACHES));
+    assert!(caps.reads_data());
+    assert!(!caps.is_admin_only());
+
+    // Verify schema
+    let schema = tool.input_schema();
+    assert!(schema.required.as_ref().unwrap().contains(&"goal_type".to_string()));
+}
 ```
 
-### Step 9: Update Documentation
+### Integration Test
 
-**File**: `docs/tools-reference.md`
+```rust
+#[tokio::test]
+async fn test_recommend_coach_execution() {
+    let pool = setup_test_db().await;
+    let context = ToolExecutionContext {
+        db_pool: pool,
+        user_id: Some("test-user".to_string()),
+        tenant_id: Some("test-tenant".to_string()),
+        is_admin: false,
+        providers: Arc::new(RwLock::new(HashMap::new())),
+    };
 
-Add tool to the appropriate category section.
+    let tool = RecommendCoachTool;
+    let args = serde_json::json!({
+        "goal_type": "marathon",
+        "experience_level": "intermediate"
+    });
 
-**File**: `docs/tutorial/chapter-19-tools-guide.md`
-
-Update tool counts in the overview section.
-
-### Step 10: Run Validation
-
-```bash
-# Format code
-cargo fmt
-
-# Run clippy strict mode
-cargo clippy --all-targets --quiet -- \
-    -D warnings -D clippy::all -D clippy::pedantic -D clippy::nursery
-
-# Run targeted tests
-cargo test your_new_tool -- --nocapture
-cargo test test_mcp_tool_schemas -- --nocapture
-cargo test test_recipe_tool_schemas -- --nocapture  # if recipe tool
-
-# Run SDK tests
-cd sdk && npm test
+    let result = tool.execute(args, &context).await;
+    assert!(result.is_ok());
+}
 ```
+
+## Documentation Updates
+
+After adding your tool, update documentation:
+
+1. **tools-reference.md**: Add tool to the reference documentation
+2. **chapter-19-tools-guide.md**: Update tool count and add to appropriate category
 
 ## Common Mistakes to Avoid
 
-### 1. Forgetting to use constants
-```rust
-// WRONG - hardcoded string
-name: "your_new_tool".to_owned(),
+### 1. Forgetting Static Lifetime for name()
 
-// CORRECT - use constant
-name: YOUR_NEW_TOOL.to_owned(),
+```rust
+// WRONG - returns String
+fn name(&self) -> String {
+    "my_tool".to_string()
+}
+
+// CORRECT - returns &'static str
+fn name(&self) -> &'static str {
+    "my_tool"
+}
 ```
 
-### 2. Missing from ToolId enum
-If you see "Unknown tool" errors, check that your tool is in:
-- `ToolId` enum variant
-- `from_name()` match arm
-- `name()` match arm
+### 2. Missing Required Parameter Validation
 
-### 3. Not registering handler in executor
-Handler must be registered in `executor.rs` or tools will fail with internal errors.
-
-### 4. Forgetting to update test counts
-Update tool counts in:
-- `tests/mcp_tools_unit.rs`
-- `tests/configuration_mcp_integration_test.rs`
-- `tests/mcp_multitenant_complete_test.rs`
-
-### 5. Not adding clippy allow in test files
-Test files need:
 ```rust
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+// WRONG - panics on missing parameter
+let param = args.get("param").unwrap().as_str().unwrap();
+
+// CORRECT - returns proper error
+let param = args
+    .get("param")
+    .and_then(|v| v.as_str())
+    .ok_or_else(|| AppError::new(ErrorCode::InvalidParams, "Missing param"))?;
 ```
+
+### 3. Incorrect Capability Flags
+
+```rust
+// WRONG - admin tool without ADMIN_ONLY
+fn capabilities(&self) -> ToolCapabilities {
+    ToolCapabilities::REQUIRES_AUTH | ToolCapabilities::WRITES_DATA
+}
+
+// CORRECT - include ADMIN_ONLY for admin tools
+fn capabilities(&self) -> ToolCapabilities {
+    ToolCapabilities::REQUIRES_AUTH
+        | ToolCapabilities::ADMIN_ONLY
+        | ToolCapabilities::WRITES_DATA
+}
+```
+
+### 4. Forgetting to Add to Factory Function
+
+Your tool won't be registered if you don't add it to `create_<category>_tools()`.
 
 ## File Reference Summary
 
 | File | Purpose |
 |------|---------|
-| `src/constants/tools/identifiers.rs` | Tool name constants |
-| `src/mcp/schema.rs` | Tool schemas for MCP discovery |
-| `src/protocols/universal/tool_registry.rs` | Type-safe ToolId enum |
-| `src/protocols/universal/handlers/*.rs` | Handler implementations |
-| `src/protocols/universal/executor.rs` | Handler registration |
-| `tests/mcp_tools_unit.rs` | Schema validation tests |
-| `tests/schema_completeness_test.rs` | Registry completeness tests |
-| `sdk/test/integration/tool-call-validation.test.js` | SDK integration tests |
+| `src/tools/traits.rs` | McpTool trait and ToolCapabilities |
+| `src/tools/registry.rs` | ToolRegistry registration |
+| `src/tools/implementations/<category>.rs` | Tool implementations |
+| `src/tools/implementations/mod.rs` | Module exports with feature flags |
+| `Cargo.toml` | Feature flag definitions |
 | `docs/tools-reference.md` | Tool documentation |
 | `docs/tutorial/chapter-19-tools-guide.md` | Tool usage guide |
 
-## Example: Complete Tool Addition
+## Key Takeaways
 
-See the recipe tools implementation for a complete example:
-- Constants: `src/constants/tools/identifiers.rs` (lines 77-90)
-- Schemas: `src/mcp/schema.rs` (search for `create_list_recipes_tool`)
-- ToolId: `src/protocols/universal/tool_registry.rs` (search for `ListRecipes`)
-- Handlers: `src/protocols/universal/handlers/recipes.rs`
-- Executor: `src/protocols/universal/executor.rs` (search for `handle_list_recipes`)
-- Tests: `tests/mcp_tools_unit.rs` (search for `test_recipe_tool_schemas`)
+1. **4-step process**: Implement trait → factory function → mod.rs → feature flag
+
+2. **McpTool trait**: Core abstraction with name, description, schema, capabilities, execute
+
+3. **Static names**: Use `&'static str` for efficient tool lookup
+
+4. **Capability flags**: Combine with bitwise OR for access control
+
+5. **Factory pattern**: Each category exports `create_<category>_tools()`
+
+6. **Feature flags**: Enable conditional compilation for reduced binary size
+
+7. **ToolExecutionContext**: Provides database, user, and tenant access
+
+8. **Proper error handling**: Use `AppResult` and proper validation
+
+9. **Test coverage**: Unit tests for metadata, integration tests for execution
+
+10. **Documentation**: Update tools-reference.md and chapter-19

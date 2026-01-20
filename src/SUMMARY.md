@@ -54,7 +54,7 @@
 - [Adding New Tools](./chapter-31-adding-new-tools.md)
 - [SDK Development](./chapter-32-sdk-development.md)
 - [Frontend Development](./chapter-33-frontend-development.md)
-- [Database System Prompts](./chapter-34-database-system-prompts.md)
+- [AI Coaches System](./chapter-34-ai-coaches-system.md)
 
 # Appendices
 
