@@ -1,19 +1,19 @@
 <!-- SPDX-License-Identifier: MIT OR Apache-2.0 -->
 <!-- Copyright (c) 2025 Pierre Fitness Intelligence -->
 
-# Chapter 19: Comprehensive Tools Guide - All 47 MCP Tools
+# Chapter 19: Comprehensive Tools Guide - All 61 MCP Tools
 
 ---
 
-This chapter provides a complete reference to all 47 MCP tools Pierre offers for fitness data analysis. You'll learn tool categories, natural language prompt examples, and how AI assistants discover and use these tools.
+This chapter provides a complete reference to all 61 MCP tools Pierre offers for fitness data analysis, AI coaching, and administration. You'll learn tool categories, natural language prompt examples, and how AI assistants discover and use these tools.
 
 ## Tool Overview
 
-Pierre provides 47 MCP tools organized in 8 functional categories:
+Pierre provides 61 MCP tools organized in 10 functional categories:
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│              Pierre MCP Tools (47 total)                   │
+│              Pierre MCP Tools (61 total)                   │
 ├────────────────────────────────────────────────────────────┤
 │ 1. Core Fitness Tools (6)                                  │
 │    - Activities, athlete profiles, stats                   │
@@ -49,12 +49,22 @@ Pierre provides 47 MCP tools organized in 8 functional categories:
 │ 8. Recipe Management (7)                                   │
 │    - Training-aware meal planning                          │
 │    - Recipe storage and search                             │
+├────────────────────────────────────────────────────────────┤
+│ 9. Coach Management (13)                                   │
+│    - AI coach CRUD operations                              │
+│    - Coach activation and favorites                        │
+│    - Coach search and visibility                           │
+├────────────────────────────────────────────────────────────┤
+│ 10. Admin Tools (8)                                        │
+│    - System coach management                               │
+│    - Coach assignment administration                       │
+│    - Tenant-wide coach configuration                       │
 └────────────────────────────────────────────────────────────┘
 ```
 
-**Tool registry**: See `src/mcp/schema.rs` for the complete tool registration.
+**Tool registry**: See `src/tools/registry.rs` for the complete tool registration.
 
-For detailed documentation of all 47 tools, see [tools-reference.md](../tools-reference.md).
+For detailed documentation of all 61 tools, see [tools-reference.md](../tools-reference.md).
 
 ## 1. Core Fitness Tools (6 Tools)
 
@@ -464,6 +474,217 @@ These tools analyze sleep and recovery metrics.
 
 **Use case**: Injury prevention, overtraining avoidance.
 
+## 9. Coach Management Tools (13 Tools)
+
+These tools enable users to create, manage, and interact with AI coaches.
+
+### List_coaches
+
+**Description**: List available AI coaches with optional filtering by category or favorites.
+
+**Parameters**:
+```json
+{
+  "category": "training",     // Optional: Filter by category
+  "favorites_only": false     // Optional: Show only favorites
+}
+```
+
+**Natural language prompts**:
+- "Show me my AI coaches"
+- "List my favorite coaches"
+- "What training coaches are available?"
+
+**Use case**: Coach discovery, selecting a coaching persona.
+
+### Create_coach
+
+**Description**: Create a custom AI coach with personalized system prompt.
+
+**Parameters**:
+```json
+{
+  "title": "Marathon Coach",           // Required
+  "description": "Specializes in...",  // Required
+  "system_prompt": "You are...",       // Required
+  "category": "training",              // Required
+  "tags": ["running", "endurance"],    // Optional
+  "sample_prompts": ["..."]            // Optional
+}
+```
+
+**Natural language prompts**:
+- "Create a nutrition coach focused on plant-based diets"
+- "Make me a recovery coach that emphasizes sleep"
+- "I want a strict training coach personality"
+
+**Use case**: Custom coaching personas, specialized expertise.
+
+### Get_coach
+
+**Description**: Get detailed information about a specific coach.
+
+**Parameters**:
+```json
+{
+  "coach_id": "uuid-here"  // Required
+}
+```
+
+### Update_coach
+
+**Description**: Modify an existing coach's configuration.
+
+**Parameters**:
+```json
+{
+  "coach_id": "uuid-here",
+  "title": "New Title",              // Optional
+  "description": "Updated...",       // Optional
+  "system_prompt": "Modified...",    // Optional
+  "category": "nutrition",           // Optional
+  "tags": ["updated", "tags"]        // Optional
+}
+```
+
+### Delete_coach
+
+**Description**: Remove a coach from the system.
+
+### Toggle_favorite_coach
+
+**Description**: Mark or unmark a coach as a favorite for quick access.
+
+**Natural language prompts**:
+- "Add this coach to my favorites"
+- "Remove coach from favorites"
+
+### Search_coaches
+
+**Description**: Search coaches by title, description, or tags.
+
+**Parameters**:
+```json
+{
+  "query": "marathon training"  // Required
+}
+```
+
+**Natural language prompts**:
+- "Find coaches that know about cycling"
+- "Search for nutrition expertise"
+
+### Activate_coach
+
+**Description**: Set a coach as the currently active persona.
+
+**Parameters**:
+```json
+{
+  "coach_id": "uuid-here"  // Required
+}
+```
+
+**Natural language prompts**:
+- "Use the marathon coach"
+- "Switch to my nutrition coach"
+- "Activate the recovery specialist"
+
+**Use case**: Changing AI persona mid-conversation.
+
+### Deactivate_coach
+
+**Description**: Disable the active coach, returning to default AI behavior.
+
+**Natural language prompts**:
+- "Stop using the coach"
+- "Return to normal mode"
+
+### Get_active_coach
+
+**Description**: Check which coach is currently active.
+
+**Natural language prompts**:
+- "Which coach am I using?"
+- "Who's my current coach?"
+
+### Hide_coach
+
+**Description**: Hide a system or assigned coach from listings.
+
+### Show_coach
+
+**Description**: Restore visibility to a hidden coach.
+
+### List_hidden_coaches
+
+**Description**: View all coaches the user has hidden.
+
+## 10. Admin Tools (8 Tools)
+
+These tools require admin privileges for tenant-wide coach management.
+
+### Admin_list_system_coaches
+
+**Description**: List all system coaches in the tenant (admin only).
+
+**Use case**: Audit tenant coaching configuration.
+
+### Admin_create_system_coach
+
+**Description**: Create a new system coach visible to all tenant users.
+
+**Parameters**:
+```json
+{
+  "title": "Company Training Coach",
+  "description": "Official company...",
+  "system_prompt": "You represent...",
+  "category": "training",
+  "visibility": "tenant"            // tenant or global
+}
+```
+
+**Use case**: Establish standard coaching personas for all users.
+
+### Admin_get_system_coach
+
+**Description**: Get detailed information about a system coach.
+
+### Admin_update_system_coach
+
+**Description**: Modify a system coach's configuration.
+
+### Admin_delete_system_coach
+
+**Description**: Delete a system coach and remove all assignments.
+
+**Use case**: Remove deprecated coaching personas.
+
+### Admin_assign_coach
+
+**Description**: Assign a system coach to a specific user.
+
+**Parameters**:
+```json
+{
+  "coach_id": "uuid-here",
+  "user_id": "user-uuid"
+}
+```
+
+**Use case**: Onboard users with pre-configured coaches.
+
+### Admin_unassign_coach
+
+**Description**: Remove a coach assignment from a user.
+
+### Admin_list_coach_assignments
+
+**Description**: List all users assigned to a system coach.
+
+**Use case**: Audit coach usage across the tenant.
+
 ## Tool Chaining Patterns
 
 AI assistants often chain multiple tools together:
@@ -500,9 +721,31 @@ AI chains:
 4. predict_performance()  // Estimate completion
 ```
 
+**Pattern 4: Coach Selection → Activation → Analysis**
+```
+User: "I want help with my marathon training from a specialist"
+
+AI chains:
+1. search_coaches(query="marathon")  // Find relevant coaches
+2. list_coaches(category="training")  // See all training coaches
+3. activate_coach(coach_id="...")  // Activate chosen coach
+4. get_activities(provider="strava", limit=10)  // Fetch recent runs
+5. analyze_performance_trends()  // Coach-influenced analysis
+```
+
+**Pattern 5: Admin Coach Setup → Assignment**
+```
+Admin: "Create a company-wide nutrition coach and assign to new users"
+
+Admin chains:
+1. admin_create_system_coach(...)  // Create tenant coach
+2. admin_assign_coach(coach_id, user_id)  // Assign to user
+3. admin_list_coach_assignments(coach_id)  // Verify assignments
+```
+
 ## Key Takeaways
 
-1. **47 total tools**: Organized in 8 functional categories for comprehensive fitness analysis.
+1. **61 total tools**: Organized in 10 functional categories for comprehensive fitness analysis and AI coaching.
 
 2. **Natural language**: AI assistants translate user prompts to tool calls automatically.
 
@@ -520,9 +763,15 @@ AI chains:
 
 9. **Recipe management**: Training-aware meal planning and recipe storage.
 
-10. **Tool chaining**: Complex workflows combine multiple tools sequentially.
+10. **AI Coaches**: 13 tools for creating and managing personalized AI coaching personas.
 
-11. **JSON Schema**: Every tool has input schema for validation and type safety.
+11. **Admin tools**: 8 admin-only tools for tenant-wide coach management and assignments.
+
+12. **Role-based visibility**: Admin tools are hidden from regular users in tool discovery.
+
+13. **Tool chaining**: Complex workflows combine multiple tools sequentially.
+
+14. **JSON Schema**: Every tool has input schema for validation and type safety.
 
 See [tools-reference.md](../tools-reference.md) for complete tool documentation.
 
