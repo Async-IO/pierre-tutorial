@@ -41,7 +41,7 @@ jobs:
           PIERRE_VERSION=$(grep '^version = ' pierre_mcp_server/Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
 
           # Get commit info from pierre_mcp_server
-          cd pierre_mcp_server
+          cd dravr-platform
           COMMIT_HASH=$(git rev-parse HEAD)
           COMMIT_SHORT=$(git rev-parse --short HEAD)
           cd ..
