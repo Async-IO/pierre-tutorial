@@ -30,8 +30,8 @@ jobs:
       - name: Checkout pierre_mcp_server for version info
         uses: actions/checkout@v4
         with:
-          repository: Async-IO/pierre_mcp_server
-          path: pierre_mcp_server
+          repository: dravr-ai/dravr-platform
+          path: dravr-platform
           fetch-depth: 1
 
       - name: Extract version information
